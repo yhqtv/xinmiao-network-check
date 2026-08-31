@@ -29,6 +29,18 @@
   <button class="btn" onclick="runHome()">重新检测</button>
  </div>
  <div class="grid4" id="basicCards"></div>
+ <div class="panel egress-panel">
+  <div class="section-row">
+   <div><h2>三线路出口 IP</h2><p class="sub">分别观察访问国内网站、普通国外网站、Google 系网站时实际使用的出口 IP，用来快速判断代理分流是否生效。</p></div>
+   <button class="btn" onclick="runEgress()">重新检测</button>
+  </div>
+  <div class="egress-grid" id="egressGrid">
+   <div class="egress-card"><div class="egress-icon">中</div><div><small>国内测试</small><b>检测中…</b><span>访问国内网站使用的 IP</span></div></div>
+   <div class="egress-card"><div class="egress-icon">外</div><div><small>国外测试</small><b>检测中…</b><span>访问普通国外网站使用的 IP</span></div></div>
+   <div class="egress-card"><div class="egress-icon">G</div><div><small>Google 测试</small><b>检测中…</b><span>访问 Google 等服务使用的 IP</span></div></div>
+  </div>
+  <div class="egress-verdict" id="egressVerdict">正在判断分流模式…</div>
+ </div>
  <div class="panel"><h2>分流出口与连通性</h2><p class="sub">浏览器直接访问不同服务，用于观察当前分流规则的实际连通效果。</p><div id="routeGrid" class="cards"></div></div>
 </section>
 
@@ -81,6 +93,6 @@
  <div id="whoisResult"></div></div>
 </section>
 </main>
-<footer>鑫淼网络检测 · Worker Full Stack · V1.7</footer>
+<footer>鑫淼网络检测 · Worker Full Stack · V1.8</footer>
 <script src="/config.js"></script><script src="/app.js"></script>
 </body></html>

@@ -31,7 +31,53 @@ async function probe(name,url,timeout=5000){
  try{await fetch(url+(url.includes("?")?"&":"?")+"_="+Date.now(),{mode:"no-cors",cache:"no-store",signal:c.signal});return{name,ok:true,ms:Math.round(performance.now()-s)}}
  catch(e){return{name,ok:false,ms:null}}finally{clearTimeout(t)}
 }
+
+async function textFetch(url,timeout=6000){
+ const c=new AbortController(),t=setTimeout(()=>c.abort(),timeout),s=performance.now();
+ try{
+  const r=await fetch(url+(url.includes("?")?"&":"?")+"_xm="+Date.now(),{cache:"no-store",signal:c.signal});
+  const text=await r.text();
+  return {ok:r.ok,text,ms:Math.round(performance.now()-s)};
+ }catch(e){return {ok:false,error:e.name==="AbortError"?"超时":e.message,ms:null}}
+ finally{clearTimeout(t)}
+}
+function extractIp(text){
+ try{const j=JSON.parse(text);return j.ip||j.query||j.address||null}catch{}
+ const m=String(text||"").match(/(?:\d{1,3}\.){3}\d{1,3}|(?:[0-9a-f]{0,4}:){2,}[0-9a-f:]+/i);
+ return m?m[0]:null;
+}
+async function egressProbe(label,url,note){
+ const r=await textFetch(url);
+ return {label,url,note,ok:r.ok,ip:r.ok?extractIp(r.text):null,ms:r.ms,error:r.error};
+}
+async function runEgress(){
+ const root=$("#egressGrid"), verdict=$("#egressVerdict");
+ root.innerHTML='<div class="muted">正在从三条独立探针读取出口 IP…</div>';
+ const probes=[
+  ["国内测试",API+"/api/ip","同源 Cloudflare Worker"],
+  ["国外测试","https://api.ipify.org?format=json","ipify 公网回显"],
+  ["Google测试","https://www.cloudflare.com/cdn-cgi/trace","独立国际回显探针"]
+ ];
+ const rs=await Promise.all(probes.map(x=>egressProbe(...x)));
+ root.innerHTML=rs.map((r,i)=>`<div class="egress-card">
+   <div class="egress-icon">${["中","外","G"][i]}</div>
+   <div class="egress-body"><small>${esc(r.label)}</small>
+    <b class="${r.ip?"good":"bad"}">${esc(r.ip||r.error||"读取失败")}</b>
+    <span>${esc(r.note)}${r.ms!=null?" · "+r.ms+" ms":""}</span>
+   </div></div>`).join("");
+ const ips=rs.map(x=>x.ip).filter(Boolean), uniq=[...new Set(ips)];
+ let msg;
+ if(ips.length<2) msg="有效探针不足，暂时无法判断出口是否分流。";
+ else if(uniq.length===1) msg="三个探针观察到相同公网 IP：当前更接近全局同一出口。";
+ else if(uniq.length===2) msg="检测到 2 个不同出口 IP：当前存在分流/多出口迹象。";
+ else msg="检测到 3 个不同出口 IP：当前存在明显的多线路分流。";
+ verdict.textContent=msg+" 注意：第三项是独立国际 IP 回显，不宣称等同于 Google 服务器实际看到的出口 IP。";
+ verdict.className="egress-verdict "+(uniq.length>1?"split":"same");
+ return rs;
+}
+
 async function runHome(){
+ runEgress();
  $("#heroIp").textContent="检测中…"; BASE=await api("/api/ip");
  $("#heroIp").textContent=BASE.ip||"—"; $("#heroGeo").textContent=[BASE.city,BASE.region,BASE.country].filter(Boolean).join(" · ");
  $("#basicCards").innerHTML=[
