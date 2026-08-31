@@ -1,8 +1,0 @@
-name = "xinmiao-network-api"
-main = "src/index.js"
-compatibility_date = "2026-08-31"
-
-[vars]
-# 初次部署可用 *。正式上线建议改成你的 GitHub Pages 域名：
-# https://YOUR-USERNAME.github.io
-ALLOWED_ORIGINS = "*"
