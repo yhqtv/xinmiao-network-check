@@ -48,16 +48,7 @@
   </div>
   <div class="main-site-arrow">↗</div>
 </a>
-
- <div class="hero">
-  <div><span class="eyebrow">MY PUBLIC IP</span><h1 id="heroIp">检测中…</h1><p id="heroGeo">正在读取网络信息</p></div>
-  <div class="hero-actions">
-    <button class="btn btn-secondary" id="ipPrivacyBtn" onclick="toggleIpPrivacy()">隐藏 50% IP</button>
-    <button class="btn" onclick="runHome()">重新检测</button>
-  </div>
- </div>
- <div class="grid4" id="basicCards"></div>
- <div class="panel egress-panel">
+<div class="panel egress-panel">
   <div class="section-row">
    <div><h2>三线路出口 IP</h2><p class="sub">分别从中国境内 IP 回显、国际 IP 回显和独立国际探针读取浏览器实际出口 IP。国内测试不再经过本站服务端，用来更准确判断 DIRECT / PROXY 分流是否生效。</p></div>
    <button class="btn" onclick="runEgress()">重新检测</button>
@@ -69,6 +60,17 @@
   </div>
   <div class="egress-verdict" id="egressVerdict">正在判断分流模式…</div>
  </div>
+
+
+ <div class="hero">
+  <div><span class="eyebrow">MY PUBLIC IP</span><h1 id="heroIp">检测中…</h1><p id="heroGeo">正在读取网络信息</p></div>
+  <div class="hero-actions">
+    <button class="btn btn-secondary" id="ipPrivacyBtn" onclick="toggleIpPrivacy()">隐藏 50% IP</button>
+    <button class="btn" onclick="runHome()">重新检测</button>
+  </div>
+ </div>
+ <div class="grid4" id="basicCards"></div>
+ 
  <div class="panel"><h2>分流出口与连通性</h2><p class="sub">浏览器直接访问不同服务，用于观察当前分流规则的实际连通效果。</p><div id="routeGrid" class="cards"></div></div>
 </section>
 
@@ -174,7 +176,7 @@
 </section>
 
 </main>
-<footer>鑫淼网络检测 · V2.5.3</footer>
+<footer>鑫淼网络检测 · V2.5.4</footer>
 <script src="/config.js"></script><script src="/app.js"></script>
 
 <div class="pwa-sheet" id="pwaSheet" hidden>
