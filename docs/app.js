@@ -95,17 +95,94 @@ async function runAI(kind){
 }
 
 const CONNECT=[
- ["百度","https://www.baidu.com/favicon.ico"],["淘宝","https://www.taobao.com/favicon.ico"],["Cloudflare","https://www.cloudflare.com/favicon.ico"],
- ["Google","https://www.google.com/favicon.ico"],["YouTube","https://www.youtube.com/favicon.ico"],["ChatGPT","https://chatgpt.com/favicon.ico"],
- ["Claude","https://claude.ai/favicon.ico"],["Gemini","https://gemini.google.com/favicon.ico"],["Grok","https://x.ai/favicon.ico"],
- ["GitHub","https://github.com/favicon.ico"],["npm","https://www.npmjs.com/favicon.ico"],["Discord","https://discord.com/favicon.ico"],
- ["Wikipedia","https://www.wikipedia.org/static/favicon/wikipedia.ico"],["PayPal","https://www.paypal.com/favicon.ico"],["Wise","https://wise.com/favicon.ico"]
+ {group:"中国",name:"DeepSeek",url:"https://www.deepseek.com/",domain:"www.deepseek.com"},
+ {group:"中国",name:"抖音",url:"https://www.douyin.com/",domain:"www.douyin.com"},
+ {group:"中国",name:"哔哩哔哩",url:"https://www.bilibili.com/",domain:"www.bilibili.com"},
+ {group:"中国",name:"京东",url:"https://www.jd.com/",domain:"www.jd.com"},
+ {group:"中国",name:"腾讯QQ",url:"https://www.qq.com/",domain:"www.qq.com"},
+ {group:"中国",name:"微信",url:"https://weixin.qq.com/",domain:"weixin.qq.com"},
+ {group:"中国",name:"小红书",url:"https://www.xiaohongshu.com/",domain:"www.xiaohongshu.com"},
+ {group:"中国",name:"新浪微博",url:"https://weibo.com/",domain:"weibo.com"},
+ {group:"中国",name:"百度",url:"https://www.baidu.com/",domain:"www.baidu.com"},
+ {group:"中国",name:"网易",url:"https://www.163.com/",domain:"www.163.com"},
+ {group:"中国",name:"淘宝",url:"https://www.taobao.com/",domain:"www.taobao.com"},
+ {group:"中国",name:"小米",url:"https://www.mi.com/",domain:"www.mi.com"},
+ {group:"日本",name:"Sony",url:"https://www.sony.jp/",domain:"www.sony.jp"},
+ {group:"日本",name:"任天堂",url:"https://www.nintendo.co.jp/",domain:"www.nintendo.co.jp"},
+ {group:"日本",name:"Yahoo! JP",url:"https://www.yahoo.co.jp/",domain:"www.yahoo.co.jp"},
+ {group:"日本",name:"LINE",url:"https://line.me/",domain:"line.me"},
+ {group:"美国",name:"Apple",url:"https://www.apple.com/",domain:"www.apple.com"},
+ {group:"美国",name:"Google",url:"https://www.google.com/",domain:"www.google.com"},
+ {group:"美国",name:"YouTube",url:"https://www.youtube.com/",domain:"www.youtube.com"},
+ {group:"美国",name:"GitHub",url:"https://github.com/",domain:"github.com"},
+ {group:"美国",name:"Cloudflare",url:"https://www.cloudflare.com/",domain:"www.cloudflare.com"},
+ {group:"美国",name:"Claude",url:"https://claude.ai/",domain:"claude.ai"},
+ {group:"美国",name:"ChatGPT",url:"https://chatgpt.com/",domain:"chatgpt.com"},
+ {group:"美国",name:"AI Studio",url:"https://aistudio.google.com/",domain:"aistudio.google.com"},
+ {group:"美国",name:"Amazon",url:"https://www.amazon.com/",domain:"www.amazon.com"},
+ {group:"美国",name:"Bing",url:"https://www.bing.com/",domain:"www.bing.com"},
+ {group:"美国",name:"Steam",url:"https://store.steampowered.com/",domain:"store.steampowered.com"},
+ {group:"美国",name:"Oracle",url:"https://www.oracle.com/",domain:"www.oracle.com"},
+ {group:"美国",name:"Zoom",url:"https://zoom.us/",domain:"zoom.us"},
+ {group:"美国",name:"Facebook",url:"https://www.facebook.com/",domain:"www.facebook.com"},
+ {group:"美国",name:"Instagram",url:"https://www.instagram.com/",domain:"www.instagram.com"},
+ {group:"美国",name:"X",url:"https://x.com/",domain:"x.com"},
+ {group:"美国",name:"Reddit",url:"https://www.reddit.com/",domain:"www.reddit.com"},
+ {group:"美国",name:"LinkedIn",url:"https://www.linkedin.com/",domain:"www.linkedin.com"},
+ {group:"美国",name:"Twitch",url:"https://www.twitch.tv/",domain:"www.twitch.tv"},
+ {group:"美国",name:"Netflix",url:"https://www.netflix.com/",domain:"www.netflix.com"},
+ {group:"全球",name:"TikTok",url:"https://www.tiktok.com/",domain:"www.tiktok.com"},
+ {group:"全球",name:"Spotify",url:"https://www.spotify.com/",domain:"www.spotify.com"},
+ {group:"全球",name:"npm",url:"https://www.npmjs.com/",domain:"www.npmjs.com"},
+ {group:"全球",name:"Takealot",url:"https://www.takealot.com/",domain:"www.takealot.com"},
+ {group:"全球",name:"PixPix",url:"https://www.pixpix.com/",domain:"www.pixpix.com"},
+ {group:"全球",name:"Naver",url:"https://www.naver.com/",domain:"www.naver.com"},
+ {group:"全球",name:"Noon",url:"https://www.noon.com/",domain:"www.noon.com"},
+ {group:"全球",name:"Wikipedia",url:"https://www.wikipedia.org/",domain:"www.wikipedia.org"},
+ {group:"全球",name:"BBC",url:"https://www.bbc.com/",domain:"www.bbc.com"},
+ {group:"全球",name:"Mistral AI",url:"https://mistral.ai/",domain:"mistral.ai"},
+ {group:"全球",name:"Yandex",url:"https://yandex.com/",domain:"yandex.com"},
+ {group:"全球",name:"MercadoLibre",url:"https://www.mercadolibre.com/",domain:"www.mercadolibre.com"}
 ];
 async function multiProbe(n,u){const a=[];for(let i=0;i<3;i++){const x=await probe(n,u);if(x.ok)a.push(x.ms)}a.sort((a,b)=>a-b);return{name:n,ms:a.length?a[Math.floor(a.length/2)]:null}}
+function faviconUrl(domain){
+  return `https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent("https://"+domain)}`;
+}
+function siteCard(s){
+  const status=s.ms==null
+    ? `<b class="bad">超时</b>`
+    : `<b class="${s.ms<200?"good":s.ms<600?"warn":"bad"}">${s.ms} ms</b>`;
+  return `<a class="site-card" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">
+    <div class="site-left">
+      <div class="site-icon-wrap">
+        <img class="site-icon" src="${faviconUrl(s.domain)}" alt="" loading="lazy"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">
+        <span class="site-icon-fallback">${esc(s.name.slice(0,2))}</span>
+      </div>
+      <div class="site-copy">
+        <div class="site-name">${esc(s.name)}</div>
+        <div class="site-url">${esc(s.url)}</div>
+      </div>
+    </div>
+    <div class="site-status">${status}<small>HTTP 中位数</small></div>
+  </a>`;
+}
 async function runConnectivity(){
- $("#linkGrid").innerHTML="<div class=muted>检测中…</div>";
- const rs=await Promise.all(CONNECT.map(x=>multiProbe(...x)));
- $("#linkGrid").innerHTML=rs.map(r=>`<div class=latency><small>${esc(r.name)}</small><b class="${r.ms==null?"bad":r.ms<300?"good":r.ms<800?"warn":"bad"}">${r.ms==null?"超时":r.ms+" ms"}</b><div class=muted>HTTP 请求中位数</div></div>`).join("");
+  $("#linkGrid").innerHTML="<div class=muted>正在测试 48 个网站，请稍候…</div>";
+  const rs=await Promise.all(CONNECT.map(async s=>({...s,...await multiProbe(s.name,s.url)})));
+  const order=["中国","日本","美国","全球"];
+  $("#linkGrid").innerHTML=order.map(group=>{
+    const list=rs.filter(x=>x.group===group);
+    const ok=list.filter(x=>x.ms!=null);
+    const avg=ok.length?Math.round(ok.reduce((a,b)=>a+b.ms,0)/ok.length):null;
+    return `<section class="site-group">
+      <div class="site-group-head">
+        <div><span class="group-badge">${esc(group)}</span><strong>${esc(group)}</strong></div>
+        <div class="group-summary">可达 ${ok.length}/${list.length}${avg!=null?` · 平均 ${avg} ms`:""}</div>
+      </div>
+      <div class="site-list">${list.map(siteCard).join("")}</div>
+    </section>`;
+  }).join("");
 }
 
 async function checkDnsArchitecture(){try{const d=await api("/api/dns-leak");$("#dnsResult").innerHTML=`<div class="notice ${d.ready?"good":"warning"}">${esc(d.message)}</div>`}catch(e){$("#dnsResult").innerHTML=esc(e.message)}}

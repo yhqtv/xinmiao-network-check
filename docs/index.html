@@ -49,8 +49,8 @@
 </section>
 
 <section class="page" id="page-link">
- <div class="panel"><h1>网络连通性测试</h1><p class="sub">浏览器本地直接向各站点发起轻量请求，多轮取中位数。这里显示 HTTP 请求耗时，不伪装成 ICMP Ping。</p>
- <button class="btn" onclick="runConnectivity()">重新测试</button><div id="linkGrid" class="latency-grid"></div></div>
+ <div class="panel"><h1>网站分流 / 网络连通性测试</h1><p class="sub">共 48 个站点，按中国 / 日本 / 美国 / 全球分组。每项显示图标、名称、官方网址、可达状态与浏览器 HTTP 请求中位耗时。</p>
+ <button class="btn" onclick="runConnectivity()">重新测试</button><div id="linkGrid" class="site-groups"></div></div>
 </section>
 
 <section class="page" id="page-dns">
@@ -81,6 +81,6 @@
  <div id="whoisResult"></div></div>
 </section>
 </main>
-<footer>鑫淼网络检测 · Worker Full Stack · V1.6</footer>
+<footer>鑫淼网络检测 · Worker Full Stack · V1.7</footer>
 <script src="/config.js"></script><script src="/app.js"></script>
 </body></html>
