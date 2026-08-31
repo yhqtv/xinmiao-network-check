@@ -241,3 +241,12 @@ Service Worker 缓存版本同步升级，重新部署后可更快更新桌面/�
 - 替换 favicon 64 / 32 / 16 和 favicon.ico
 - Manifest 图标 URL 增加版本参数，减少旧图标缓存
 - Service Worker 缓存升级至 v2.5.2
+
+
+## V2.5.3 首页主站入口
+
+首页新增“鑫淼的世界”官方网站卡片：
+- 名称：鑫淼的世界
+- 域名：yhqtv.com
+- 点击后新窗口打开 https://yhqtv.com/
+- 手机 / iPad / 桌面自适应
