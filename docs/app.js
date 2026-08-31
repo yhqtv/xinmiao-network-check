@@ -70,6 +70,7 @@ document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>{
  $("#page-"+b.dataset.page).classList.add("active");
  if(b.dataset.page==="gpt") runAI("gpt");
  if(b.dataset.page==="claude") runAI("claude");
+ if(b.dataset.page==="dns") runDnsRisk();
  if(b.dataset.page==="status") runStatus();
 });
 
@@ -737,7 +738,6 @@ async function runConnectivity(){
   }).join("");
 }
 
-async function checkDnsArchitecture(){try{const d=await api("/api/dns-leak");$("#dnsResult").innerHTML=`<div class="notice ${d.ready?"good":"warning"}">${esc(d.message)}</div>`}catch(e){$("#dnsResult").innerHTML=esc(e.message)}}
 async function runWebRTCPage(){
  $("#webrtcResult").innerHTML="检测中…";const [b,ips]=await Promise.all([ensureBase(),runWebRTC()]);
  const different=ips.filter(x=>x!==b.ip);

@@ -156,3 +156,16 @@ IP 隐私开关仍只隐藏 IP 本身；国家地区仍保留显示，方便截�
 
 D1 Reads = 0
 D1 Writes = 0
+
+
+## V2.3.1 DNS 页面彻底修复
+
+- 删除旧 V1.6 DNS 占位页面
+- 新 DNS 泄露风险检测页正式使用 `page-dns`
+- 顶部“DNS泄露”导航直接打开新页面
+- 进入 DNS 页面后自动运行检测
+- 保留“重新检测”按钮
+- 删除旧 `checkDnsArchitecture()` 占位逻辑
+- VPS = 0
+- D1 Reads = 0
+- D1 Writes = 0

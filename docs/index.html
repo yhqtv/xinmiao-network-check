@@ -68,12 +68,6 @@
  <button class="btn" onclick="runConnectivity()">重新测试</button><div id="linkGrid" class="site-groups"></div></div>
 </section>
 
-<section class="page" id="page-dns">
- <div class="panel"><h1>DNS 泄露检测</h1><p class="sub">真实 DNS 泄露检测需要权威 DNS 服务器观察“到底是哪台递归解析器来查询唯一随机域名”。</p>
- <div class="notice warning">当前 V1.6 已完成检测框架，但你的 Worker 还没有权威 DNS 日志能力。这里不会用 Cloudflare Worker 出口或 DoH 可达性冒充 DNS Resolver。</div>
- <button class="btn" onclick="checkDnsArchitecture()">检测 DNS 探针状态</button><div id="dnsResult"></div></div>
-</section>
-
 <section class="page" id="page-webrtc">
  <div class="panel"><h1>WebRTC / UDP 泄露检测</h1><p class="sub">使用多个 STUN 节点收集 ICE Candidate，判断 UDP 是否暴露与 HTTPS 出口不同的公网 IP。</p>
  <button class="btn" onclick="runWebRTCPage()">开始检测</button><div id="webrtcResult"></div></div>
@@ -96,13 +90,15 @@
  <div id="whoisResult"></div></div>
 </section>
 
-<section class="page" id="dns">
-  <div class="page-head">
-    <div>
-      <h1>DNS 泄露风险检测</h1>
-      <p>纯 GitHub + Cloudflare 无服务器版。检测公网出口、WebRTC 额外公网 IP、主流 DoH 服务可达性和网络分流信号；不伪造“真实 DNS Resolver IP”。</p>
+<section class="page" id="page-dns">
+  <div class="panel">
+    <div class="page-head">
+      <div>
+        <h1>DNS 泄露风险检测</h1>
+        <p class="sub">纯 GitHub + Cloudflare 无服务器版。检测公网出口、WebRTC 额外公网 IP、主流 DoH 服务可达性和网络分流信号；不伪造“真实 DNS Resolver IP”。</p>
+      </div>
+      <button class="btn" onclick="runDnsRisk()">重新检测</button>
     </div>
-    <button class="btn" onclick="runDnsRisk()">开始检测</button>
   </div>
 
   <div class="dns-risk-grid">
@@ -153,6 +149,6 @@
 </section>
 
 </main>
-<footer>鑫淼网络检测 · Worker Full Stack · V2.3</footer>
+<footer>鑫淼网络检测 · Worker Full Stack · V2.3.1</footer>
 <script src="/config.js"></script><script src="/app.js"></script>
 </body></html>
