@@ -637,6 +637,71 @@ async function runCurrentIpScore(){
   }
 }
 
+
+// ---------------- V2.5 PWA install / standalone support ----------------
+let PWA_DEFERRED_PROMPT=null;
+
+function isIos(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+}
+function isStandalone(){
+  return window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone===true;
+}
+function openPwaSheet(){
+  const el=document.getElementById("pwaSheet");
+  if(el) el.hidden=false;
+}
+function closePwaSheet(){
+  const el=document.getElementById("pwaSheet");
+  if(el) el.hidden=true;
+}
+function refreshPwaInstallButton(){
+  const b=document.getElementById("pwaInstallBtn");
+  if(!b) return;
+  if(isStandalone()){
+    b.hidden=true;
+    return;
+  }
+  b.hidden=false;
+  b.textContent=isIos()?"添加到主屏幕":"安装到桌面";
+}
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault();
+  PWA_DEFERRED_PROMPT=e;
+  refreshPwaInstallButton();
+});
+window.addEventListener("appinstalled",()=>{
+  PWA_DEFERRED_PROMPT=null;
+  refreshPwaInstallButton();
+});
+document.addEventListener("click",async e=>{
+  const b=e.target.closest?.("#pwaInstallBtn");
+  if(!b) return;
+  if(isIos()){
+    openPwaSheet();
+    return;
+  }
+  if(PWA_DEFERRED_PROMPT){
+    PWA_DEFERRED_PROMPT.prompt();
+    try{await PWA_DEFERRED_PROMPT.userChoice}catch{}
+    PWA_DEFERRED_PROMPT=null;
+    refreshPwaInstallButton();
+    return;
+  }
+  // Browser did not expose native install prompt: provide generic instruction.
+  openPwaSheet();
+});
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("/sw.js").catch(err=>console.warn("SW register failed",err));
+    refreshPwaInstallButton();
+  });
+}else{
+  document.addEventListener("DOMContentLoaded",refreshPwaInstallButton);
+}
+
 async function runHome(){
  refreshPrivacyButton();
  runEgress();
@@ -833,3 +898,13 @@ $("#whoisForm").onsubmit=async e=>{
 
 refreshPrivacyButton();
 runHome();
+
+
+function openPageFromHash(){
+  const key=(location.hash||"").replace(/^#/,"").trim();
+  if(!key) return;
+  const b=document.querySelector(`[data-page="${CSS.escape(key)}"]`);
+  if(b) b.click();
+}
+window.addEventListener("hashchange",openPageFromHash);
+window.addEventListener("load",()=>setTimeout(openPageFromHash,80));

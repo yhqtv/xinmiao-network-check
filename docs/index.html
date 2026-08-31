@@ -4,6 +4,15 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>鑫淼网络检测 · Network Intelligence</title>
 <link rel="stylesheet" href="/style.css">
+
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0a2740">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="鑫淼网络检测">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+
 </head>
 <body>
 <header class="top">
@@ -20,7 +29,7 @@
     <button data-page="status">服务状态</button>
     <button data-page="whois">Whois</button>
   </nav>
-</header>
+<button class="pwa-install-btn" id="pwaInstallBtn" type="button">安装到桌面</button></header>
 
 <main>
 <section class="page active" id="page-home">
@@ -149,6 +158,15 @@
 </section>
 
 </main>
-<footer>鑫淼网络检测 · V2.4.1</footer>
+<footer>鑫淼网络检测 · V2.5</footer>
 <script src="/config.js"></script><script src="/app.js"></script>
+
+<div class="pwa-sheet" id="pwaSheet" hidden>
+  <div class="pwa-sheet-card">
+    <button class="pwa-sheet-close" type="button" onclick="closePwaSheet()">×</button>
+    <h3>添加到主屏幕</h3>
+    <p>iPhone / iPad：点击 Safari 的“分享”按钮，然后选择“添加到主屏幕”。安装后会以独立窗口打开。</p>
+  </div>
+</div>
+
 </body></html>

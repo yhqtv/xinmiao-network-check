@@ -192,3 +192,28 @@ IP 深度评分：
 - 不需要再点击“开始测试”
 - 页面原测试按钮改为“重新测试”
 - 继续使用现有 `runConnectivity()` 测试逻辑，不改变 48 站点分组、状态和延迟计算
+
+
+## V2.5 手机 / iPad / 桌面 PWA
+
+界面：
+- 手机单列布局，按钮扩大到适合触摸操作
+- iPad / 平板采用两列自适应布局
+- 导航支持横向滑动，避免小屏挤压
+- IP、DNS、网络连通卡片防止溢出
+- 支持 iPhone / iPad 安全区域（刘海、底部 Home Indicator）
+- 桌面、大屏继续保留多列布局
+
+PWA：
+- `manifest.webmanifest`
+- `sw.js`
+- 192 / 512 应用图标
+- Apple Touch Icon
+- 支持 Chrome / Edge“安装到桌面”
+- 支持 Safari iPhone / iPad“添加到主屏幕”
+- 安装后使用 `display: standalone` 独立窗口运行
+- 桌面图标名称：鑫淼网络检测
+- PWA 快捷入口：IP 深度评分 / 网络连通 / DNS 泄露风险
+
+注意：
+iPhone / iPad 的安装动作由 Safari 系统菜单控制，网页不能绕过系统直接静默安装。

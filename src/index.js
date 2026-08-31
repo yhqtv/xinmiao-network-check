@@ -164,7 +164,7 @@ async function handle(req, env){
   const u=new URL(req.url), p=u.pathname;
 
   if(p==="/health"||p==="/api/health")
-    return json({ok:true,service:"XinMiao Network API",version:"2.4.1",frontend:"worker-static-assets"});
+    return json({ok:true,service:"XinMiao Network API",version:"2.5.0",frontend:"worker-static-assets"});
 
   if((p==="/ip"||p==="/api/ip") && req.method==="GET") return json(cfInfo(req));
 
@@ -239,7 +239,23 @@ if((p==="/lookup"||p==="/api/lookup") && req.method==="GET"){
     });
   }
 
-  if(env.ASSETS){
+  
+  if(p==="/sw.js" && env.ASSETS){
+    const r=await env.ASSETS.fetch(req);
+    const h=new Headers(r.headers);
+    h.set("Cache-Control","no-cache, no-store, must-revalidate");
+    h.set("Service-Worker-Allowed","/");
+    return new Response(r.body,{status:r.status,headers:h});
+  }
+  if(p==="/manifest.webmanifest" && env.ASSETS){
+    const r=await env.ASSETS.fetch(req);
+    const h=new Headers(r.headers);
+    h.set("Content-Type","application/manifest+json; charset=utf-8");
+    h.set("Cache-Control","public, max-age=300");
+    return new Response(r.body,{status:r.status,headers:h});
+  }
+
+if(env.ASSETS){
     const r=await env.ASSETS.fetch(req);
     if(r.status!==404) return r;
     if(!p.includes(".")) return env.ASSETS.fetch(new Request(new URL("/index.html",u.origin),req));

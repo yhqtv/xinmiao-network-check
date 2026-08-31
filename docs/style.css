@@ -81,3 +81,89 @@ main{width:min(1220px,94vw);margin:28px auto 55px}.page{display:none}.page.activ
 .dns-finding.info span{color:var(--accent)}
 .dns-disclaimer{margin-top:14px;padding:12px 14px;border-radius:12px;border:1px dashed rgba(143,170,189,.28);color:var(--muted);font-size:12px;line-height:1.7}
 @media(max-width:900px){.dns-risk-grid,.dns-doh-grid{grid-template-columns:1fr}}
+
+/* V2.5 Responsive + PWA */
+html{max-width:100%;overflow-x:hidden}
+body{min-width:0;overflow-x:hidden;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+img,svg,canvas,video{max-width:100%;height:auto}
+input,select,button,textarea{font:inherit}
+button,.btn{min-height:44px;touch-action:manipulation}
+.page,.panel,.card{min-width:0}
+table{max-width:100%}
+
+/* iPad / tablet */
+@media (max-width:1180px){
+  .container,.wrap,main{max-width:100%;padding-left:18px;padding-right:18px}
+  .grid4{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .egress-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dns-risk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dns-doh-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* Phones */
+@media (max-width:720px){
+  body{padding-bottom:max(16px,env(safe-area-inset-bottom))}
+  .container,.wrap,main{padding-left:12px!important;padding-right:12px!important}
+  header,.topbar,.nav-wrap{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+  h1{font-size:clamp(26px,8vw,38px)!important;line-height:1.08}
+  h2{font-size:20px}
+  .sub,.muted,p{line-height:1.65}
+  .grid4,.egress-grid,.dns-risk-grid,.dns-doh-grid{grid-template-columns:1fr!important}
+  .section-row,.page-head,.hero-actions{flex-direction:column!important;align-items:stretch!important}
+  .section-row .btn,.page-head .btn,.hero-actions .btn{width:100%}
+  .egress-card{padding:14px}
+  .dns-kv{align-items:flex-start}
+  .dns-kv b{max-width:62%}
+  .nav,.tabs,.topnav{overflow-x:auto;white-space:nowrap;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .nav::-webkit-scrollbar,.tabs::-webkit-scrollbar,.topnav::-webkit-scrollbar{display:none}
+  .nav button,.tabs button,.topnav button,.nav a,.tabs a,.topnav a{flex:0 0 auto}
+  .panel{border-radius:16px;padding:16px!important}
+  .egress-body b{font-size:17px}
+  pre,code{white-space:pre-wrap;word-break:break-word}
+}
+
+/* Narrow phones */
+@media (max-width:430px){
+  .container,.wrap,main{padding-left:10px!important;padding-right:10px!important}
+  .panel{padding:14px!important}
+  .egress-icon{width:38px;height:38px;flex-basis:38px}
+  .dns-score{font-size:36px}
+}
+
+/* Safe areas for installed iPhone/iPad PWA */
+@supports(padding:max(0px)){
+  body{
+    padding-top:max(0px,env(safe-area-inset-top));
+    padding-left:max(0px,env(safe-area-inset-left));
+    padding-right:max(0px,env(safe-area-inset-right));
+  }
+}
+
+.pwa-install-btn{
+  appearance:none;border:1px solid rgba(92,208,255,.36);background:rgba(10,39,64,.82);
+  color:#dff7ff;border-radius:12px;padding:9px 14px;font-weight:800;cursor:pointer;
+  min-height:40px;white-space:nowrap
+}
+.pwa-install-btn:hover{border-color:rgba(92,208,255,.72)}
+.pwa-install-btn[hidden]{display:none!important}
+
+.pwa-sheet{
+  position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);
+  display:grid;place-items:end center;padding:18px
+}
+.pwa-sheet[hidden]{display:none}
+.pwa-sheet-card{
+  width:min(560px,100%);background:#0a1f32;border:1px solid rgba(92,208,255,.28);
+  border-radius:20px;padding:22px;box-shadow:0 20px 80px rgba(0,0,0,.4);position:relative
+}
+.pwa-sheet-card h3{margin:0 0 10px}
+.pwa-sheet-card p{margin:0;color:var(--muted);line-height:1.7}
+.pwa-sheet-close{
+  position:absolute;right:12px;top:10px;border:0;background:transparent;color:#fff;
+  font-size:26px;min-width:40px;min-height:40px;cursor:pointer
+}
+
+/* Installed app appearance */
+@media (display-mode:standalone){
+  .pwa-install-btn{display:none!important}
+}

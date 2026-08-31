@@ -1,0 +1,47 @@
+{
+  "name": "鑫淼网络检测",
+  "short_name": "网络检测",
+  "description": "IP、网络连通、DNS风险、WebRTC与全球网络检测工具",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
+  "background_color": "#061423",
+  "theme_color": "#0a2740",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "IP 深度评分",
+      "short_name": "IP评分",
+      "url": "/#score"
+    },
+    {
+      "name": "网络连通",
+      "short_name": "网络连通",
+      "url": "/#link"
+    },
+    {
+      "name": "DNS 泄露风险",
+      "short_name": "DNS检测",
+      "url": "/#dns"
+    }
+  ]
+}
