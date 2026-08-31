@@ -50,7 +50,10 @@
 </a>
 <div class="panel egress-panel">
   <div class="section-row">
-   <div><h2>三线路出口 IP</h2><p class="sub">分别从中国境内 IP 回显、国际 IP 回显和独立国际探针读取浏览器实际出口 IP。国内测试不再经过本站服务端，用来更准确判断 DIRECT / PROXY 分流是否生效。</p></div>
+   <div><div class="egress-title-row">
+  <h2>三线路出口 IP</h2>
+  <div class="egress-privacy-action"><button class="btn btn-secondary" id="ipPrivacyBtn" onclick="toggleIpPrivacy()">隐藏 50% IP</button></div>
+</div><p class="sub">分别从中国境内 IP 回显、国际 IP 回显和独立国际探针读取浏览器实际出口 IP。国内测试不再经过本站服务端，用来更准确判断 DIRECT / PROXY 分流是否生效。</p></div>
    <button class="btn" onclick="runEgress()">重新检测</button>
   </div>
   <div class="egress-grid" id="egressGrid">
@@ -65,7 +68,7 @@
  <div class="hero">
   <div><span class="eyebrow">MY PUBLIC IP</span><h1 id="heroIp">检测中…</h1><p id="heroGeo">正在读取网络信息</p></div>
   <div class="hero-actions">
-    <button class="btn btn-secondary" id="ipPrivacyBtn" onclick="toggleIpPrivacy()">隐藏 50% IP</button>
+    
     <button class="btn" onclick="runHome()">重新检测</button>
   </div>
  </div>
@@ -176,7 +179,7 @@
 </section>
 
 </main>
-<footer>鑫淼网络检测 · V2.5.4</footer>
+<footer>鑫淼网络检测 · V2.5.5</footer>
 <script src="/config.js"></script><script src="/app.js"></script>
 
 <div class="pwa-sheet" id="pwaSheet" hidden>

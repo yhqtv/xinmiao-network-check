@@ -195,3 +195,23 @@ table{max-width:100%}
   .main-site-logo{width:44px;height:44px;flex-basis:44px;border-radius:13px}
   .main-site-info strong{font-size:16px}
 }
+
+/* V2.5.5 三线路 IP 隐私按钮 */
+.egress-title-row{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  margin-bottom:10px
+}
+.egress-title-row h1,.egress-title-row h2,.egress-title-row h3{margin:0}
+.egress-privacy-action{margin-left:auto;flex:0 0 auto}
+.egress-privacy-action button{
+  min-height:38px;padding:8px 13px;border-radius:11px;white-space:nowrap
+}
+@media(max-width:600px){
+  .egress-title-row{align-items:center;gap:8px}
+  .egress-title-row h1,.egress-title-row h2,.egress-title-row h3{font-size:19px!important}
+  .egress-privacy-action button{min-height:36px;padding:7px 10px;font-size:12px}
+}
+@media(max-width:390px){
+  .egress-title-row{align-items:flex-start;flex-direction:column}
+  .egress-privacy-action{margin-left:0}
+}
