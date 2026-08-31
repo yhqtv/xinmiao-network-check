@@ -2,12 +2,12 @@
   "name": "xinmiao-network-check",
   "version": "1.6.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
-  },
-  "description": "XinMiao Network Check - Cloudflare Worker full-stack static assets + API"
+  }
 }

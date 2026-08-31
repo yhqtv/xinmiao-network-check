@@ -7,4 +7,6 @@ directory = "./docs"
 binding = "ASSETS"
 run_worker_first = true
 
-# IPAPI_IS_KEY 请通过 Cloudflare Worker Secret 设置，禁止提交到 GitHub。
+# Optional secrets:
+# IPAPI_IS_KEY      - full IP quality fields / higher quota
+# GLOBALPING_TOKEN  - optional, raises Globalping allowance

@@ -1,282 +1,150 @@
-const $ = s => document.querySelector(s);
-const API_BASE = String(window.XM_CONFIG?.API_BASE || window.location.origin).replace(/\/$/, '');
-const apiUrl = path => {
-  if (!API_BASE) throw new Error('无法确定 Worker API 地址');
-  return API_BASE + path;
-};
-const state = { ip: null, routes: [], split: [], webrtc: [], latency: [] };
-let privacy = false;
 
-const esc = s => String(s ?? '—').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-const maskIp = ip => { if(!ip) return '—'; if(ip.includes(':')) return ip.split(':').slice(0,3).join(':') + ':••••'; const a=ip.split('.'); return a.length===4 ? `${a[0]}.${a[1]}.•••.•••` : ip; };
-const shownIp = ip => privacy ? maskIp(ip) : ip;
+const API=(window.XM_CONFIG?.API_BASE||location.origin).replace(/\/$/,"");
+const $=s=>document.querySelector(s), esc=s=>String(s??"—").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+let BASE=null, QUALITY=null;
 
-async function fetchJSON(url, opts={}, timeout=7000){ const c=new AbortController(); const t=setTimeout(()=>c.abort(), timeout); try { const r=await fetch(url,{...opts,signal:c.signal,cache:'no-store'}); if(!r.ok) throw new Error(`HTTP ${r.status}`); return await r.json(); } finally { clearTimeout(t); } }
+async function api(path,opts={}){const r=await fetch(API+path,{cache:"no-store",...opts});const d=await r.json();if(!r.ok||d.ok===false)throw new Error(d.error||"请求失败");return d}
+function maskIp(ip){if(!ip)return"—";if(ip.includes(".")){let a=ip.split(".");a[3]="***";return a.join(".")}return ip.split(":").slice(0,4).join(":")+"::****"}
+function yn(v){return v===true?"是":v===false?"否":"未知"}
+function typeOf(q){if(!q)return"未知";if(q.is_tor)return"Tor";if(q.is_vpn)return"VPN";if(q.is_proxy)return"Proxy";if(q.is_datacenter)return"数据中心/机房";if(q.is_mobile)return"移动网络";return"住宅/普通网络"}
 
-async function loadIp(){
-  try{
-    const d=await fetchJSON(apiUrl('/api/ip')); state.ip=d;
-    $('#ip').textContent=shownIp(d.ip);
-    $('#location').textContent=[d.city,d.region,d.country].filter(Boolean).join(' · ') || '位置未知';
-    $('#asn').textContent=d.asn?`AS${d.asn}`:'ASN 未知'; $('#isp').textContent=d.asOrganization||'网络未知'; $('#colo').textContent=d.colo?`CF ${d.colo}`:'CF —'; $('#proto').textContent=d.httpProtocol||location.protocol.replace(':','').toUpperCase();
-    const v6=d.ip?.includes(':'); $(v6?'#ipv6':'#ipv4').textContent=shownIp(d.ip); $(v6?'#ipv6s':'#ipv4s').textContent='当前出口';
-    $('#httpsStatus').textContent=location.protocol==='https:'?'安全':'非 HTTPS'; $('#dnsHttps').textContent=location.protocol==='https:'?'HTTPS 页面':'非 HTTPS';
-  }catch(e){ $('#ip').textContent='读取失败'; $('#location').textContent=e.name==='AbortError'?'连接 Worker 超时，请检查 API 地址或网络':'API 请求失败：'+e.message; }
+document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll("#nav button").forEach(x=>x.classList.toggle("active",x===b));
+ document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+ $("#page-"+b.dataset.page).classList.add("active");
+ if(b.dataset.page==="gpt") runAI("gpt");
+ if(b.dataset.page==="claude") runAI("claude");
+ if(b.dataset.page==="status") runStatus();
+});
+
+async function ensureBase(){if(!BASE)BASE=await api("/api/ip");return BASE}
+async function ensureQuality(ip){if(!QUALITY||ip)QUALITY=await api("/api/quality"+(ip?"?ip="+encodeURIComponent(ip):""));return QUALITY}
+
+const ROUTES=[
+ ["Cloudflare","https://1.1.1.1/cdn-cgi/trace"],["Google","https://www.google.com/favicon.ico"],
+ ["YouTube","https://www.youtube.com/favicon.ico"],["ChatGPT","https://chatgpt.com/favicon.ico"],
+ ["Claude","https://claude.ai/favicon.ico"],["GitHub","https://github.com/favicon.ico"],
+ ["淘宝","https://www.taobao.com/favicon.ico"],["百度","https://www.baidu.com/favicon.ico"]
+];
+async function probe(name,url,timeout=5000){
+ const c=new AbortController(),t=setTimeout(()=>c.abort(),timeout),s=performance.now();
+ try{await fetch(url+(url.includes("?")?"&":"?")+"_="+Date.now(),{mode:"no-cors",cache:"no-store",signal:c.signal});return{name,ok:true,ms:Math.round(performance.now()-s)}}
+ catch(e){return{name,ok:false,ms:null}}finally{clearTimeout(t)}
+}
+async function runHome(){
+ $("#heroIp").textContent="检测中…"; BASE=await api("/api/ip");
+ $("#heroIp").textContent=BASE.ip||"—"; $("#heroGeo").textContent=[BASE.city,BASE.region,BASE.country].filter(Boolean).join(" · ");
+ $("#basicCards").innerHTML=[
+ ["IP版本","IPv"+BASE.ip_version],["ASN",BASE.asn||"—"],["运营商",BASE.organization||"—"],["Cloudflare节点",BASE.colo||"—"],
+ ["协议",BASE.http_protocol||"—"],["TLS",BASE.tls_version||"—"],["时区",BASE.timezone||"—"],["经纬度",[BASE.latitude,BASE.longitude].filter(x=>x!=null).join(", ")||"—"]
+ ].map(x=>`<div class="card"><small>${esc(x[0])}</small><b>${esc(x[1])}</b></div>`).join("");
+ $("#routeGrid").innerHTML="<div class=muted>检测中…</div>";
+ const rs=await Promise.all(ROUTES.map(x=>probe(...x)));
+ $("#routeGrid").innerHTML=rs.map(r=>`<div class="card"><small>${esc(r.name)}</small><b class="${r.ok?"good":"bad"}">${r.ok?r.ms+" ms":"不可达"}</b></div>`).join("");
 }
 
-const routeProbes=[
-  {name:'Cloudflare', url:'https://1.1.1.1/cdn-cgi/trace', type:'Cloudflare'},
-  {name:'IPify', url:'https://api.ipify.org?format=json', type:'独立公网 API'},
-  {name:'Amazon CheckIP', url:'https://checkip.amazonaws.com/', type:'AWS'},
-  {name:'icanhazip', url:'https://icanhazip.com/', type:'独立公网 API'}
-];
-async function probeRoute(p){ const start=performance.now(); const c=new AbortController(); const t=setTimeout(()=>c.abort(),6000); try{ const r=await fetch(p.url,{signal:c.signal,cache:'no-store'}); const txt=await r.text(); let ip=''; if(p.name==='Cloudflare') ip=(txt.match(/(?:^|\n)ip=([^\n]+)/)||[])[1]||''; else if(p.name==='IPify'){ try{ip=JSON.parse(txt).ip}catch{} } else ip=(txt.match(/([0-9a-fA-F:.]{3,})/)||[])[1]||''; if(!ip) throw new Error('未返回 IP'); return {...p,ip,ms:Math.round(performance.now()-start),ok:true}; }catch(e){return {...p,ip:'—',ms:null,ok:false,error:e.name==='AbortError'?'超时':'受 CORS/网络限制'};}finally{clearTimeout(t)} }
-async function runRoutes(){ const body=$('#routeBody'); body.innerHTML=routeProbes.map(p=>`<tr><td>${esc(p.name)}</td><td>检测中…</td><td>${esc(p.type)}</td><td><span class="pill"><i class="dot"></i>等待</span></td></tr>`).join(''); const res=await Promise.all(routeProbes.map(probeRoute)); state.routes=res; body.innerHTML=res.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(shownIp(r.ip))}</td><td>${esc(r.type)}</td><td><span class="pill ${r.ok?'ok':'warn'}"><i class="dot"></i>${r.ok?`${r.ms} ms`:esc(r.error)}</span></td></tr>`).join(''); return res; }
+function renderScore(q){
+ const cls=q.level==="low"?"good":q.level==="medium"?"warn":"bad";
+ const loc=q.location||{}, asn=q.asn||{}, co=q.company||{};
+ return `<div class="quality">
+ <div class="card scorebox"><div><small>IP 信任分</small><div class="scorebig ${cls}">${esc(q.trust_score)}</div><b>${q.level==="low"?"低风险":q.level==="medium"?"中风险":"高风险"}</b><p class=muted>${esc(q.ip)}</p></div></div>
+ <div><div class="flags">
+ ${[["IP类型",typeOf(q)],["VPN",yn(q.is_vpn)],["Proxy",yn(q.is_proxy)],["Tor",yn(q.is_tor)],["Crawler",yn(q.is_crawler)],["Abuser",yn(q.is_abuser)],["Hosting",yn(q.is_datacenter)],["移动网络",yn(q.is_mobile)]].map(x=>`<div class=flag><span>${esc(x[0])}</span><b>${esc(x[1])}</b></div>`).join("")}
+ </div><div class="panel" style="margin-top:12px"><div class=kv>
+ <div>地区</div><div>${esc(loc.city||"")} ${esc(loc.state||loc.region||"")} ${esc(loc.country||loc.country_code||"")}</div>
+ <div>ASN</div><div>${esc(asn.asn||asn.num||asn.number||"—")} ${esc(asn.org||asn.organization||"")}</div>
+ <div>组织</div><div>${esc(co.name||co.company||"—")}</div>
+ <div>数据源</div><div>${esc(q.provider)} · ${esc(q.provider_elapsed_ms)} ms</div>
+ </div></div></div></div>`;
+}
+$("#scoreForm").onsubmit=async e=>{e.preventDefault();$("#scoreResult").innerHTML="查询中…";try{const q=$("#scoreInput").value.trim();const d=await api("/api/quality"+(q?"?ip="+encodeURIComponent(q):""));$("#scoreResult").innerHTML=renderScore(d)}catch(e){$("#scoreResult").innerHTML=`<div class="notice bad">${esc(e.message)}</div>`}};
 
-function parseCandidate(c){ const m=c.match(/candidate:\S+ \d+ \S+ \d+ ([0-9a-fA-F:.]+) \d+ typ (\w+)/); return m?{ip:m[1],type:m[2]}:null; }
+function deviceInfo(){
+ const gl=(()=>{try{const c=document.createElement("canvas"),g=c.getContext("webgl")||c.getContext("experimental-webgl");const d=g.getExtension("WEBGL_debug_renderer_info");return d?g.getParameter(d.UNMASKED_RENDERER_WEBGL):"受保护"}catch{return"不可用"}})();
+ return {timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,language:navigator.language,platform:navigator.platform,touch:navigator.maxTouchPoints||0,connection:navigator.connection?.effectiveType||"未知",dnt:navigator.doNotTrack||"未知",webgl:gl};
+}
+async function aiConnectivity(kind){
+ const targets=kind==="gpt"?[["chatgpt.com","https://chatgpt.com/favicon.ico"],["api.openai.com","https://api.openai.com"]]:[["claude.ai","https://claude.ai/favicon.ico"],["anthropic.com","https://www.anthropic.com/favicon.ico"]];
+ return Promise.all(targets.map(x=>probe(...x)));
+}
 async function runWebRTC(){
-  $('#webrtcStatus').textContent='检测中'; $('#webrtcList').innerHTML='<div class="row"><span>STUN</span><b>探测中…</b></div>';
-  const found=new Map();
+ const found=new Set();
+ const pcs=[];
+ for(const server of ["stun:stun.l.google.com:19302","stun:stun.cloudflare.com:3478"]){
   try{
-    const pc=new RTCPeerConnection({iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun.cloudflare.com:3478']} ]}); pc.createDataChannel('x');
-    pc.onicecandidate=e=>{if(e.candidate){const x=parseCandidate(e.candidate.candidate);if(x && !x.ip.endsWith('.local')) found.set(x.ip,x);}};
-    const offer=await pc.createOffer(); await pc.setLocalDescription(offer); await new Promise(r=>setTimeout(r,3500)); pc.close();
-    state.webrtc=[...found.values()]; const pub=state.webrtc.filter(x=>!/^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(x.ip));
-    $('#webrtcList').innerHTML=state.webrtc.length?state.webrtc.map(x=>`<div class="row"><span>${esc(x.type.toUpperCase())}</span><b>${esc(shownIp(x.ip))}</b></div>`).join(''):'<div class="row"><span>没有发现候选地址</span><b>受保护 / 被禁用</b></div>';
-    const main=state.ip?.ip; const different=pub.some(x=>x.ip!==main); $('#webrtcStatus').textContent=different?'注意':'正常'; $('#webrtcIp').textContent=pub.length?shownIp(pub[0].ip):'未发现公网 IP';
-    $('#webrtcVerdict').className='verdict '+(different?'danger':'success'); $('#webrtcVerdict').textContent=different?'发现与当前 HTTP 出口不同的 WebRTC 公网 IP，请检查 UDP / 代理分流。':'未发现与当前 HTTP 出口冲突的公网 IP。';
-  }catch(e){ state.webrtc=[]; $('#webrtcStatus').textContent='不可用'; $('#webrtcList').innerHTML=`<div class="row"><span>WebRTC</span><b>${esc(e.message)}</b></div>`; }
-  return state.webrtc;
+   const pc=new RTCPeerConnection({iceServers:[{urls:server}]});pcs.push(pc);pc.createDataChannel("x");
+   pc.onicecandidate=e=>{if(e.candidate){const m=e.candidate.candidate.match(/(?:\d{1,3}\.){3}\d{1,3}|[0-9a-f:]{3,}/ig)||[];m.forEach(x=>{if(x.includes(".")||x.includes(":"))found.add(x)})}};
+   const offer=await pc.createOffer();await pc.setLocalDescription(offer);
+  }catch{}
+ }
+ await new Promise(r=>setTimeout(r,2400));pcs.forEach(p=>p.close());
+ return [...found].filter(x=>!/^0\.0\.0\.0/.test(x));
+}
+async function runAI(kind){
+ const root=$("#"+kind+"Result");root.innerHTML='<div class=panel>检测中…</div>';
+ try{
+  const [b,q,conn,rtc]=await Promise.all([ensureBase(),ensureQuality(),aiConnectivity(kind),runWebRTC()]);
+  const dev=deviceInfo(), title=kind==="gpt"?"ChatGPT / Codex":"Claude AI";
+  const historyKey="xm_"+kind+"_history";let hist=JSON.parse(localStorage.getItem(historyKey)||"[]");hist.unshift({t:new Date().toISOString(),ip:b.ip,score:q.trust_score});hist=hist.slice(0,30);localStorage.setItem(historyKey,JSON.stringify(hist));
+  root.innerHTML=`<div class=panel>${renderScore(q)}</div>
+  <div class=panel><h2>${title} 可用性检测</h2><div class=cards>${conn.map(x=>`<div class=card><small>${esc(x.name)}</small><b class="${x.ok?"good":"bad"}">${x.ok?x.ms+" ms":"不可达"}</b></div>`).join("")}</div></div>
+  <div class=panel><h2>DNS / WebRTC UDP</h2><div class=cards><div class=card><small>DNS 泄露</small><b class=warn>需权威 DNS 探针</b></div><div class=card><small>UDP / WebRTC IP</small><b>${esc(rtc.join(", ")||"未发现公网 Candidate")}</b></div></div></div>
+  <div class=panel><h2>用户设备信息</h2><div class=kv>${Object.entries(dev).map(([k,v])=>`<div>${esc(k)}</div><div>${esc(v)}</div>`).join("")}</div></div>
+  <div class=panel><h2>本地历史</h2><div class=tablewrap><table><thead><tr><th>时间</th><th>IP</th><th>信任分</th></tr></thead><tbody>${hist.map(x=>`<tr><td>${esc(new Date(x.t).toLocaleString())}</td><td>${esc(x.ip)}</td><td>${esc(x.score)}</td></tr>`).join("")}</tbody></table></div><p class=muted>仅保存在当前浏览器 localStorage。</p></div>`;
+ }catch(e){root.innerHTML=`<div class="panel notice bad">${esc(e.message)}</div>`}
 }
 
-const latencyTargets=[
-  ['Baidu','https://www.baidu.com/favicon.ico'],['Taobao','https://www.taobao.com/favicon.ico'],
-  ['Cloudflare','https://www.cloudflare.com/favicon.ico'],['GitHub','https://github.com/favicon.ico'],
-  ['Google','https://www.google.com/favicon.ico'],['YouTube','https://www.youtube.com/favicon.ico'],
-  ['OpenAI','https://openai.com/favicon.ico'],['Anthropic','https://www.anthropic.com/favicon.ico'],
-  ['Discord','https://discord.com/assets/favicon.ico'],['Wikipedia','https://www.wikipedia.org/static/favicon/wikipedia.ico']
+const CONNECT=[
+ ["百度","https://www.baidu.com/favicon.ico"],["淘宝","https://www.taobao.com/favicon.ico"],["Cloudflare","https://www.cloudflare.com/favicon.ico"],
+ ["Google","https://www.google.com/favicon.ico"],["YouTube","https://www.youtube.com/favicon.ico"],["ChatGPT","https://chatgpt.com/favicon.ico"],
+ ["Claude","https://claude.ai/favicon.ico"],["Gemini","https://gemini.google.com/favicon.ico"],["Grok","https://x.ai/favicon.ico"],
+ ["GitHub","https://github.com/favicon.ico"],["npm","https://www.npmjs.com/favicon.ico"],["Discord","https://discord.com/favicon.ico"],
+ ["Wikipedia","https://www.wikipedia.org/static/favicon/wikipedia.ico"],["PayPal","https://www.paypal.com/favicon.ico"],["Wise","https://wise.com/favicon.ico"]
 ];
-async function latencyOnce(url){
-  const target=url+`${url.includes('?')?'&':'?'}_xm=${Date.now()}${Math.random()}`;
-  const s=performance.now(); const c=new AbortController(); const t=setTimeout(()=>c.abort(),4500);
-  try{
-    await fetch(target,{mode:'no-cors',cache:'no-store',signal:c.signal});
-    const total=Math.round(performance.now()-s);
-    const entries=performance.getEntriesByName(target);
-    const ent=entries[entries.length-1];
-    const ttfb=(ent && ent.responseStart>0 && ent.requestStart>0)?Math.max(0,Math.round(ent.responseStart-ent.requestStart)):null;
-    return {total,ttfb};
-  }catch{return null}finally{clearTimeout(t)}
-}
-async function testLatency(name,url){
-  const vals=[];
-  for(let i=0;i<3;i++){const v=await latencyOnce(url);if(v)vals.push(v)}
-  const med = key => {
-    const a=vals.map(v=>v[key]).filter(v=>v!=null).sort((a,b)=>a-b);
-    return a.length?a[Math.floor(a.length/2)]:null;
-  };
-  return {name,url,total_ms:med('total'),ttfb_ms:med('ttfb')};
-}
-function latencyClass(ms){return ms==null?'bad':ms<250?'ok':ms<700?'warn':'bad'}
-async function runLatency(){
-  const g=$('#latencyGrid');
-  g.innerHTML=latencyTargets.map(([n,u])=>`<div class="latency"><div class="name">${n}</div><div class="url">${u}</div><strong>…</strong></div>`).join('');
-  const res=await Promise.all(latencyTargets.map(x=>testLatency(...x))); state.latency=res;
-  g.innerHTML=res.map(r=>`<div class="latency ${latencyClass(r.total_ms)}"><div class="name">${esc(r.name)}</div><div class="url">${esc(r.url)}</div><strong>${r.total_ms==null?'超时':r.total_ms}</strong> <small>${r.total_ms==null?'':'ms 总耗时'}</small>${r.ttfb_ms!=null?`<div class="muted">TTFB ${r.ttfb_ms} ms</div>`:'<div class="muted">TTFB：浏览器未暴露</div>'}</div>`).join('');
-  return res;
+async function multiProbe(n,u){const a=[];for(let i=0;i<3;i++){const x=await probe(n,u);if(x.ok)a.push(x.ms)}a.sort((a,b)=>a-b);return{name:n,ms:a.length?a[Math.floor(a.length/2)]:null}}
+async function runConnectivity(){
+ $("#linkGrid").innerHTML="<div class=muted>检测中…</div>";
+ const rs=await Promise.all(CONNECT.map(x=>multiProbe(...x)));
+ $("#linkGrid").innerHTML=rs.map(r=>`<div class=latency><small>${esc(r.name)}</small><b class="${r.ms==null?"bad":r.ms<300?"good":r.ms<800?"warn":"bad"}">${r.ms==null?"超时":r.ms+" ms"}</b><div class=muted>HTTP 请求中位数</div></div>`).join("");
 }
 
-function calcScore(){let score=100;if(location.protocol!=='https:')score-=25;const bad=state.latency.filter(x=>x.total_ms==null).length;score-=Math.min(30,bad*4);const main=state.ip?.ip;const diff=state.webrtc.some(x=>x.ip!==main && !/^10\.|^192\.168\.|^172\./.test(x.ip));if(diff)score-=25;score=Math.max(0,score);$('#score').textContent=score;$('#meter').style.width=score+'%';return score}
-function buildReport(){const score=calcScore();const lines=[`鑫淼网络检测报告`,`时间: ${new Date().toLocaleString()}`,`HTTP IP: ${shownIp(state.ip?.ip)}`,`位置: ${[state.ip?.city,state.ip?.region,state.ip?.country].filter(Boolean).join(' / ')||'未知'}`,`网络: ${state.ip?.asn?'AS'+state.ip.asn:'—'} ${state.ip?.asOrganization||''}`,`Cloudflare: ${state.ip?.colo||'—'}`,`基础评分: ${score}/100`,'', '出口探针:',...state.routes.map(x=>`- ${x.name}: ${shownIp(x.ip)} ${x.ok?x.ms+'ms':x.error}`),'','WebRTC:',...(state.webrtc.length?state.webrtc.map(x=>`- ${x.type}: ${shownIp(x.ip)}`):['- 未发现候选公网 IP']),'','连通性:',...state.latency.map(x=>`- ${x.name}: ${x.total_ms==null?'超时/不可达':x.total_ms+'ms 总耗时'}`),'','说明: DNS 解析器 IP 需要权威 DNS 探针；站点连通性测试不等同于服务账号地区解锁检测。'];$('#report').textContent=lines.join('\n');$('#reportTime').textContent=`完成于 ${new Date().toLocaleTimeString()}`;return lines.join('\n')}
-async function runAll(){ $('#runBtn').disabled=true; $('#runBtn').textContent='检测中…'; await loadIp(); await Promise.all([runRoutes(),runSplit(),runWebRTC(),runLatency(),loadQuality()]); buildReport(); $('#runBtn').disabled=false; $('#runBtn').textContent='重新完整检测'; }
+async function checkDnsArchitecture(){try{const d=await api("/api/dns-leak");$("#dnsResult").innerHTML=`<div class="notice ${d.ready?"good":"warning"}">${esc(d.message)}</div>`}catch(e){$("#dnsResult").innerHTML=esc(e.message)}}
+async function runWebRTCPage(){
+ $("#webrtcResult").innerHTML="检测中…";const [b,ips]=await Promise.all([ensureBase(),runWebRTC()]);
+ const different=ips.filter(x=>x!==b.ip);
+ $("#webrtcResult").innerHTML=`<div class=panel><div class=cards><div class=card><small>HTTPS 公网 IP</small><b>${esc(b.ip)}</b></div><div class=card><small>STUN / UDP IP</small><b>${esc(ips.join(", ")||"未发现公网 Candidate")}</b></div><div class=card><small>判断</small><b class="${different.length?"bad":"good"}">${different.length?"发现不同公网 IP，需检查":"未发现明显泄露"}</b></div></div></div>`;
+}
 
-$('#privacyBtn').onclick=()=>{privacy=!privacy;$('#privacyBtn').textContent=privacy?'显示 IP':'隐藏 IP';if(state.ip)$('#ip').textContent=shownIp(state.ip.ip);runRoutesDisplay();runWebRTCDisplay();buildReport()};
-function runRoutesDisplay(){if(state.routes.length)$('#routeBody').innerHTML=state.routes.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(shownIp(r.ip))}</td><td>${esc(r.type)}</td><td><span class="pill ${r.ok?'ok':'warn'}"><i class="dot"></i>${r.ok?`${r.ms} ms`:esc(r.error)}</span></td></tr>`).join('')}
-function runWebRTCDisplay(){if(state.webrtc.length)$('#webrtcList').innerHTML=state.webrtc.map(x=>`<div class="row"><span>${esc(x.type.toUpperCase())}</span><b>${esc(shownIp(x.ip))}</b></div>`).join('')}
-$('#copyIp').onclick=()=>state.ip?.ip&&navigator.clipboard.writeText(state.ip.ip);
-$('#runBtn').onclick=runAll; document.querySelectorAll('[data-run]').forEach(b=>b.onclick=async()=>{const k=b.dataset.run;if(k==='route')await Promise.all([runRoutes(),runSplit()]);if(k==='webrtc')await runWebRTC();if(k==='latency')await runLatency();buildReport()});
-$('#copyReport').onclick=()=>navigator.clipboard.writeText($('#report').textContent);
-$('#lookupForm').onsubmit=async e=>{
-  e.preventDefault(); const q=$('#lookupInput').value.trim(); if(!q)return;
-  $('#lookupResult').textContent='查询中…';
-  try{
-    const d=await fetchJSON(apiUrl('/lookup?ip='+encodeURIComponent(q)));
-    if(!d.ok) throw new Error(d.error||'查询失败');
-    const x=d.quality;
-    if(!x?.ok){
-      $('#lookupResult').innerHTML=`<b>${esc(q)}</b><br>${esc(x?.message||'IP 质量服务未配置')}`;
-      return;
-    }
-    $('#lookupResult').innerHTML=`<b>${esc(x.ip||q)}</b><br>
-      类型：${esc(classifyIp(x))}<br>
-      VPN：${esc(boolText(x.is_vpn))} · Proxy：${esc(boolText(x.is_proxy))} · Tor：${esc(boolText(x.is_tor))}<br>
-      Hosting：${esc(boolText(x.is_datacenter))} · Abuser：${esc(boolText(x.is_abuser))}<br>
-      信任分：${esc(x.trust_score)}/100 · 风险：${esc(x.level)}`;
-  }catch(err){ $('#lookupResult').textContent='查询失败：'+err.message; }
+$("#pingForm").onsubmit=async e=>{
+ e.preventDefault();const target=$("#pingTarget").value.trim();if(!target)return;
+ $("#pingResult").innerHTML='<div class=notice>正在创建全球分布式 Ping…</div>';
+ try{
+  const d=await api("/api/globalping",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({target})});
+  let result=null;
+  for(let i=0;i<12;i++){await new Promise(r=>setTimeout(r,1200));result=await api("/api/globalping/"+d.id);if(result.status!=="in-progress")break}
+  const rows=(result.results||[]).map(x=>{
+   const p=x.probe||{},r=x.result||{},s=r.stats||{},loc=p.location||{};
+   return `<tr><td>${esc([loc.city,loc.country].filter(Boolean).join(" · ")||p.name||"节点")}</td><td>${esc(s.min??"—")}</td><td>${esc(s.avg??"—")}</td><td>${esc(s.max??"—")}</td><td>${esc(s.loss??s.packetLoss??"—")}</td></tr>`
+  });
+  $("#pingResult").innerHTML=`<div class=tablewrap><table><thead><tr><th>节点</th><th>最小 ms</th><th>平均 ms</th><th>最大 ms</th><th>丢包</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
+ }catch(e){$("#pingResult").innerHTML=`<div class="notice bad">${esc(e.message)}</div>`}
 };
 
-runAll();
-// ===== V1.4 enhanced IP quality + latency semantics =====
-function boolText(v){
-  if(v === true) return "是";
-  if(v === false) return "否";
-  return "未知";
-}
-function setText(id, value){
-  const el = document.getElementById(id);
-  if(el) el.textContent = value ?? "—";
-}
-function classifyIp(q){
-  if(!q) return "未知";
-  if(q.is_tor) return "Tor 出口";
-  if(q.is_vpn) return "VPN";
-  if(q.is_proxy) return "Proxy";
-  if(q.is_datacenter) return "数据中心";
-  if(q.is_mobile) return "移动网络";
-  return "普通网络";
-}
-async function loadQuality(){
-  const notice = document.getElementById("qualityNotice");
-  try{
-    if(notice) notice.textContent = "正在获取真实 IP 质量数据…";
-    const base = (window.XM_CONFIG && window.XM_CONFIG.API_BASE || "").replace(/\/$/,"");
-    const currentIp = (document.getElementById("ipv4")?.textContent || document.getElementById("ip")?.textContent || "").replace(/[•\s]/g,"");
-    const url = base + "/quality" + (currentIp && currentIp.includes(".") ? "?ip="+encodeURIComponent(currentIp) : "");
-    const r = await fetch(url,{cache:"no-store"});
-    const q = await r.json();
-    if(!q.ok){
-      setText("trustScore","—");
-      setText("riskLevel", q.configured === false ? "需要配置 API Key" : "检测失败");
-      if(notice) notice.innerHTML = q.configured === false
-        ? '真实 IP 风险检测尚未启用：请在 Cloudflare Worker → Settings → Variables and Secrets 中添加 <b>IPAPI_IS_KEY</b>。'
-        : 'IP 质量接口失败：' + (q.error || q.message || "未知错误");
-      return;
-    }
-    setText("trustScore", q.trust_score);
-    setText("riskLevel", q.level === "low" ? "低风险" : q.level === "medium" ? "中风险" : "高风险");
-    setText("qualityProvider", `数据源：${q.provider || "ipapi.is"} · ${q.provider_elapsed_ms ?? "—"} ms`);
-    setText("ipType", classifyIp(q));
-    setText("qVpn", boolText(q.is_vpn));
-    setText("qProxy", boolText(q.is_proxy));
-    setText("qTor", boolText(q.is_tor));
-    setText("qHosting", boolText(q.is_datacenter));
-    setText("qAbuser", boolText(q.is_abuser));
-    setText("qMobile", boolText(q.is_mobile));
-    const eg = q.egress_service;
-    setText("qEgress", typeof eg === "string" ? eg : (eg?.name || eg?.type || "无"));
-    if(notice){
-      notice.textContent = `风险分 ${q.risk_score}/100。信任分是本站按公开风险标记加权生成，用于网络诊断，不代表金融或反欺诈授信评分。`;
-    }
-  }catch(e){
-    setText("riskLevel","检测失败");
-    if(notice) notice.textContent = "IP 质量检测失败：" + e.message;
-  }
-}
-document.getElementById("qualityRetry")?.addEventListener("click", loadQuality);
-
-// Use Resource Timing where available: separate browser connection/TTFB from total API response.
-async function measuredFetch(url, opts={}){
-  const started = performance.now();
-  const cacheBust = (url.includes("?") ? "&" : "?") + "_xm=" + Date.now() + Math.random();
-  const target = url + cacheBust;
-  const ctl = new AbortController();
-  const timer = setTimeout(()=>ctl.abort(), opts.timeout || 7000);
-  try{
-    const r = await fetch(target,{mode:opts.mode || "cors",cache:"no-store",signal:ctl.signal});
-    const total = Math.round(performance.now()-started);
-    let network = null, ttfb = null;
-    const entries = performance.getEntriesByName(target);
-    const ent = entries[entries.length-1];
-    if(ent){
-      if(ent.responseStart && ent.requestStart) ttfb = Math.max(0, Math.round(ent.responseStart-ent.requestStart));
-      if(ent.connectEnd && ent.connectStart) network = Math.max(0, Math.round(ent.connectEnd-ent.connectStart));
-    }
-    return {ok:r.ok,total_ms:total,connect_ms:network,ttfb_ms:ttfb,response:r};
-  } finally {
-    clearTimeout(timer);
-  }
+async function runStatus(){
+ $("#statusGrid").innerHTML="<div class=muted>加载官方状态接口…</div>";
+ try{
+  const d=await api("/api/status");const sv=d.services.sort((a,b)=>(a.indicator==="none")-(b.indicator==="none"));
+  $("#statusGrid").innerHTML=sv.map(s=>`<div class=status-card><div><b>${esc(s.name)}</b><div class=tag>${esc(s.category)}</div></div><div class="${s.indicator==="none"?"good":s.indicator==="unknown"?"warn":"bad"}">${esc(s.description)}</div></div>`).join("");
+ }catch(e){$("#statusGrid").innerHTML=`<div class=notice>${esc(e.message)}</div>`}
 }
 
-// V1.4 split-routing catalog. Browser-side checks preserve the user's actual routing decisions.
-window.XM_PROBE_CATALOG = [
-  {group:"国内", name:"百度", site:"baidu.com", url:"https://www.baidu.com/favicon.ico"},
-  {group:"国内", name:"淘宝", site:"taobao.com", url:"https://www.taobao.com/favicon.ico"},
-  {group:"国际", name:"Cloudflare", site:"cloudflare.com", url:"https://www.cloudflare.com/favicon.ico"},
-  {group:"国际", name:"Google", site:"google.com", url:"https://www.google.com/favicon.ico"},
-  {group:"国际", name:"YouTube", site:"youtube.com", url:"https://www.youtube.com/favicon.ico"},
-  {group:"AI", name:"ChatGPT", site:"chatgpt.com", url:"https://chatgpt.com/favicon.ico"},
-  {group:"AI", name:"Claude", site:"claude.ai", url:"https://claude.ai/favicon.ico"},
-  {group:"AI", name:"Gemini", site:"gemini.google.com", url:"https://gemini.google.com/favicon.ico"},
-  {group:"AI", name:"Grok", site:"x.ai", url:"https://x.ai/favicon.ico"},
-  {group:"开发", name:"GitHub", site:"github.com", url:"https://github.com/favicon.ico"},
-  {group:"开发", name:"npm", site:"npmjs.com", url:"https://www.npmjs.com/favicon.ico"},
-  {group:"开发", name:"GitLab", site:"gitlab.com", url:"https://gitlab.com/favicon.ico"},
-  {group:"金融", name:"Wise", site:"wise.com", url:"https://wise.com/favicon.ico"},
-  {group:"金融", name:"PayPal", site:"paypal.com", url:"https://www.paypal.com/favicon.ico"}
-];
+$("#whoisForm").onsubmit=async e=>{
+ e.preventDefault();const q=$("#whoisInput").value.trim();if(!q)return;$("#whoisResult").innerHTML="查询中…";
+ try{
+  const d=await api("/api/rdap?q="+encodeURIComponent(q)),x=d.data;
+  const events=(x.events||[]).map(e=>`${e.eventAction}: ${e.eventDate}`).join("<br>");
+  $("#whoisResult").innerHTML=`<div class=panel><div class=kv><div>Handle</div><div>${esc(x.handle)}</div><div>名称</div><div>${esc(x.ldhName||x.name)}</div><div>类型</div><div>${esc(x.objectClassName)}</div><div>国家</div><div>${esc(x.country)}</div><div>状态</div><div>${esc((x.status||[]).join(", "))}</div><div>事件</div><div>${events||"—"}</div></div></div><details><summary>原始 RDAP JSON</summary><pre>${esc(JSON.stringify(x,null,2))}</pre></details>`;
+ }catch(e){$("#whoisResult").innerHTML=`<div class="notice bad">${esc(e.message)}</div>`}
+};
 
-
-async function splitProbeOnce(p){
-  const started=performance.now(); const c=new AbortController(); const t=setTimeout(()=>c.abort(),5000);
-  const target=p.url+(p.url.includes("?")?"&":"?")+"_xm="+Date.now()+Math.random();
-  try{
-    await fetch(target,{mode:"no-cors",cache:"no-store",signal:c.signal});
-    return {...p,ok:true,total_ms:Math.round(performance.now()-started)};
-  }catch(e){
-    return {...p,ok:false,total_ms:null,error:e.name==="AbortError"?"超时":"被阻止"};
-  }finally{ clearTimeout(t); }
-}
-function renderSplit(items){
-  const root=document.getElementById("splitProbeGroups"); if(!root) return;
-  const groups=[...new Set(window.XM_PROBE_CATALOG.map(x=>x.group))];
-  root.innerHTML=groups.map(group=>{
-    const rows=items.filter(x=>x.group===group);
-    return `<div class="split-group">
-      <div class="split-group-head">${esc(group)}</div>
-      <div class="split-items">${
-        rows.map(x=>{
-          const origin = (()=>{try{return new URL(x.url).origin}catch{return ""}})();
-          const icon = origin ? origin + "/favicon.ico" : "";
-          return `<div class="split-item site-card">
-            <div class="site-identity">
-              <div class="site-icon-wrap">
-                <img class="site-icon" src="${esc(icon)}" alt="" loading="lazy"
-                  onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">
-                <span class="site-icon-fallback" style="display:none">${esc((x.name||'?').slice(0,1).toUpperCase())}</span>
-              </div>
-              <div class="site-copy">
-                <div class="site-name">${esc(x.name)}</div>
-                <a class="site-url" href="https://${esc(x.site||'')}" target="_blank" rel="noopener noreferrer">${esc(x.site||origin.replace(/^https?:\/\//,''))}</a>
-              </div>
-            </div>
-            <div class="site-status">
-              <b class="${x.ok?'status-ok':'status-bad'}">${x.ok?`${x.total_ms} ms`:esc(x.error||'失败')}</b>
-              <small>${x.ok?'请求总耗时':'连接状态'}</small>
-            </div>
-          </div>`;
-        }).join("")
-      }</div>
-    </div>`;
-  }).join("");
-}
-function splitModeVerdict(items){
-  const el=document.getElementById("splitVerdict"); if(!el) return;
-  const by=g=>items.filter(x=>x.group===g);
-  const ratio=g=>{const a=by(g);return a.length?a.filter(x=>x.ok).length/a.length:0};
-  const domestic=ratio("国内"), intl=ratio("国际"), ai=ratio("AI");
-  let text="检测完成：这里判断的是各服务是否能从当前浏览器线路建立请求，不等于目标服务确认的账号地区解锁。";
-  if(domestic>=.5 && intl>=.5 && ai>=.5) text="多数国内、国际和 AI 服务均可建立请求；当前线路整体连通性较完整。";
-  else if(domestic>=.5 && intl<.5) text="国内连通较好，国际服务连通较弱；可能存在直连线路限制或代理规则未覆盖。";
-  else if(domestic>=.5 && intl>=.5 && ai<.5) text="国内与国际基础服务可达，但部分 AI 服务不可达；建议检查 AI 域名分流规则。";
-  el.className="verdict "+(items.some(x=>!x.ok)?"neutral":"success");
-  el.textContent=text;
-}
-async function runSplit(){
-  const root=document.getElementById("splitProbeGroups");
-  if(root) root.innerHTML='<div class="muted">正在检测国内 / 国际 / AI / 开发 / 金融服务…</div>';
-  const res=await Promise.all(window.XM_PROBE_CATALOG.map(splitProbeOnce));
-  state.split=res; renderSplit(res); splitModeVerdict(res); return res;
-}
-
-// Fire quality detection after initial IP load has had time to complete.
-
+runHome();

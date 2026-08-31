@@ -1,123 +1,86 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#07111f" />
-  <title>鑫淼网络检测 · IP / DNS / WebRTC / 分流</title>
-  <meta name="description" content="IP、ASN、地区、WebRTC、网络分流、站点连通性与延迟检测" />
-  <link rel="stylesheet" href="./style.css" />
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>鑫淼网络检测 · Network Intelligence</title>
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="grid-bg"></div>
-  <header class="topbar">
-    <div class="brand"><span class="logo">XM</span><div><b>鑫淼网络检测</b><small>Network Intelligence</small></div></div>
-    <div class="actions"><button id="privacyBtn" class="ghost">隐藏 IP</button><button id="runBtn" class="primary">开始完整检测</button></div>
-  </header>
+<header class="top">
+  <div class="brand"><span class="logo">XM</span><div><b>鑫淼网络检测</b><small>Network Intelligence</small></div></div>
+  <nav id="nav">
+    <button data-page="home" class="active">IP查询</button>
+    <button data-page="score">IP评分</button>
+    <button data-page="gpt">GPT检测</button>
+    <button data-page="claude">Claude</button>
+    <button data-page="link">网络连通</button>
+    <button data-page="dns">DNS泄露</button>
+    <button data-page="webrtc">WebRTC</button>
+    <button data-page="ping">全球Ping</button>
+    <button data-page="status">服务状态</button>
+    <button data-page="whois">Whois</button>
+  </nav>
+</header>
 
-  <main class="wrap">
-    <section class="hero card">
-      <div class="hero-main">
-        <div class="eyebrow">当前公网 IP</div>
-        <div class="ip-line"><span id="ip">检测中…</span><button id="copyIp" title="复制">⧉</button></div>
-        <div id="location" class="location">正在读取 Cloudflare 网络信息</div>
-        <div class="chips"><span id="asn">ASN —</span><span id="isp">ISP —</span><span id="colo">CF —</span><span id="proto">HTTP —</span></div>
-      </div>
-      <div class="score-box">
-        <div class="eyebrow">基础网络评分</div>
-        <div class="score"><span id="score">--</span><small>/100</small></div>
-        <div class="meter"><i id="meter"></i></div>
-        <small class="muted">基于连通性、HTTPS、WebRTC一致性等本地指标；不是商业反欺诈评分。</small>
-      </div>
-    </section>
-
-    <section class="stat-grid">
-      <article class="mini card"><span>IPv4</span><b id="ipv4">—</b><small id="ipv4s">等待检测</small></article>
-      <article class="mini card"><span>IPv6</span><b id="ipv6">—</b><small id="ipv6s">等待检测</small></article>
-      <article class="mini card"><span>WebRTC</span><b id="webrtcStatus">—</b><small id="webrtcIp">等待检测</small></article>
-      <article class="mini card"><span>HTTPS</span><b id="httpsStatus">—</b><small>浏览器连接安全</small></article>
-    </section>
-
-    
-<section class="panel" id="qualityPanel">
-  <div class="section-head">
-    <div>
-      <h2>IP 质量 / 风险识别</h2>
-      <p>真实第三方数据：VPN、Proxy、Tor、Hosting、Abuser、移动网络等。</p>
-    </div>
-    <button class="btn ghost" id="qualityRetry">重新检测</button>
-  </div>
-  <div class="quality-grid">
-    <div class="quality-score-card">
-      <div class="label">IP 信任分</div>
-      <div class="quality-score"><span id="trustScore">—</span><small>/100</small></div>
-      <div class="risk-badge" id="riskLevel">等待检测</div>
-      <div class="subtle" id="qualityProvider">数据源：ipapi.is</div>
-    </div>
-    <div class="flags-grid" id="qualityFlags">
-      <div class="flag-card"><span>IP 类型</span><b id="ipType">—</b></div>
-      <div class="flag-card"><span>VPN</span><b id="qVpn">—</b></div>
-      <div class="flag-card"><span>Proxy</span><b id="qProxy">—</b></div>
-      <div class="flag-card"><span>Tor</span><b id="qTor">—</b></div>
-      <div class="flag-card"><span>Hosting</span><b id="qHosting">—</b></div>
-      <div class="flag-card"><span>Abuser</span><b id="qAbuser">—</b></div>
-      <div class="flag-card"><span>移动网络</span><b id="qMobile">—</b></div>
-      <div class="flag-card"><span>出口服务</span><b id="qEgress">—</b></div>
-    </div>
-  </div>
-  <div class="notice" id="qualityNotice">正在获取 IP 质量数据…</div>
+<main>
+<section class="page active" id="page-home">
+ <div class="hero">
+  <div><span class="eyebrow">MY PUBLIC IP</span><h1 id="heroIp">检测中…</h1><p id="heroGeo">正在读取网络信息</p></div>
+  <button class="btn" onclick="runHome()">重新检测</button>
+ </div>
+ <div class="grid4" id="basicCards"></div>
+ <div class="panel"><h2>分流出口与连通性</h2><p class="sub">浏览器直接访问不同服务，用于观察当前分流规则的实际连通效果。</p><div id="routeGrid" class="cards"></div></div>
 </section>
 
-<section class="two-col">
-      <article class="card panel">
-        <div class="section-head"><div><h2>出口 / 分流探针</h2><p>不同网络域名的公网出口；适合验证代理规则是否按域名分流。</p></div><button class="ghost small" data-run="route">重新检测</button></div>
-        <div class="table-wrap"><table><thead><tr><th>探针</th><th>出口 IP</th><th>网络</th><th>状态</th></tr></thead><tbody id="routeBody"></tbody></table></div>
-        <p class="hint">注意：浏览器无法直接读取“访问 Google/OpenAI 时对方看到的 IP”，除非目标站或自建探针返回客户端 IP 并允许 CORS。本页面不会伪造这类结果。</p>
-        <div class="split-divider"></div>
-        <div class="subsection-title">按服务分类的浏览器直连测试</div>
-        <div id="splitProbeGroups" class="split-probe-groups"></div>
-        <div id="splitVerdict" class="verdict neutral">等待检测</div>
+<section class="page" id="page-score">
+ <div class="panel"><h1>IP 深度评分</h1><p class="sub">住宅/机房、VPN、Proxy、Tor、Crawler、Abuser、ASN、地理位置与风险标记。</p>
+ <form class="search" id="scoreForm"><input id="scoreInput" placeholder="输入 IPv4 / IPv6，留空查询当前IP"><button class="btn">查询</button></form>
+ <div id="scoreResult"></div></div>
+</section>
 
-      </article>
+<section class="page" id="page-gpt">
+ <div class="panel aihead"><h1>ChatGPT · Codex IP 风险检测</h1><p class="sub">检测当前公网出口的风险属性、ChatGPT/Codex 连通性、DNS、UDP、设备信息与本地历史。</p></div>
+ <div id="gptResult"></div>
+</section>
 
-      <article class="card panel">
-        <div class="section-head"><div><h2>WebRTC / UDP</h2><p>通过 STUN 收集浏览器可能暴露的公网地址。</p></div><button class="ghost small" data-run="webrtc">重新检测</button></div>
-        <div id="webrtcList" class="list"><div class="row"><span>等待检测</span><b>—</b></div></div>
-        <div id="webrtcVerdict" class="verdict neutral">尚未运行</div>
-      </article>
-    </section>
+<section class="page" id="page-claude">
+ <div class="panel aihead"><h1>Claude AI IP 风险检测</h1><p class="sub">检测当前公网出口风险属性、Claude/Anthropic 连通性、DNS、UDP、设备信息与本地历史。</p></div>
+ <div id="claudeResult"></div>
+</section>
 
-    <section class="card panel">
-      <div class="section-head"><div><h2>网络连通性与延迟</h2><p>浏览器直接向目标站点发送轻量请求，多轮取中位数。显示的是浏览器请求总耗时，不冒充 ICMP Ping；跨域站点可能因浏览器限制无法提供完整 TTFB/TCP 数据。</p></div><button class="ghost small" data-run="latency">重新检测</button></div>
-      <div id="latencyGrid" class="latency-grid"></div>
-    </section>
+<section class="page" id="page-link">
+ <div class="panel"><h1>网络连通性测试</h1><p class="sub">浏览器本地直接向各站点发起轻量请求，多轮取中位数。这里显示 HTTP 请求耗时，不伪装成 ICMP Ping。</p>
+ <button class="btn" onclick="runConnectivity()">重新测试</button><div id="linkGrid" class="latency-grid"></div></div>
+</section>
 
-    <section class="two-col">
-      <article class="card panel">
-        <div class="section-head"><div><h2>DNS 安全检查</h2><p>浏览器环境无法直接枚举系统 DNS 解析器 IP；完整泄漏检测需要你自己的权威 DNS 探针域名。</p></div></div>
-        <div class="list">
-          <div class="row"><span>页面 DNS / HTTPS</span><b id="dnsHttps">—</b></div>
-          <div class="row"><span>自建 DNS Probe</span><b id="dnsProbe">未配置</b></div>
-          <div class="row"><span>DNS 泄漏结论</span><b>需探针</b></div>
-        </div>
-        <p class="hint">已预留 <code>DNS_PROBE_URL</code>。以后接入权威 DNS 日志/DoH 服务即可显示解析器 IP、国家和运营商。</p>
-      </article>
+<section class="page" id="page-dns">
+ <div class="panel"><h1>DNS 泄露检测</h1><p class="sub">真实 DNS 泄露检测需要权威 DNS 服务器观察“到底是哪台递归解析器来查询唯一随机域名”。</p>
+ <div class="notice warning">当前 V1.6 已完成检测框架，但你的 Worker 还没有权威 DNS 日志能力。这里不会用 Cloudflare Worker 出口或 DoH 可达性冒充 DNS Resolver。</div>
+ <button class="btn" onclick="checkDnsArchitecture()">检测 DNS 探针状态</button><div id="dnsResult"></div></div>
+</section>
 
-      <article class="card panel">
-        <div class="section-head"><div><h2>IP 深度查询</h2><p>输入任意 IPv4 / IPv6 查询地理与网络信息。</p></div></div>
-        <form id="lookupForm" class="lookup"><input id="lookupInput" placeholder="例如 8.8.8.8" autocomplete="off"/><button class="primary" type="submit">查询</button></form>
-        <div id="lookupResult" class="lookup-result muted">等待输入 IP</div>
-      </article>
-    </section>
+<section class="page" id="page-webrtc">
+ <div class="panel"><h1>WebRTC / UDP 泄露检测</h1><p class="sub">使用多个 STUN 节点收集 ICE Candidate，判断 UDP 是否暴露与 HTTPS 出口不同的公网 IP。</p>
+ <button class="btn" onclick="runWebRTCPage()">开始检测</button><div id="webrtcResult"></div></div>
+</section>
 
-    <section class="card panel report">
-      <div class="section-head"><div><h2>检测报告</h2><p id="reportTime">尚未完成</p></div><button id="copyReport" class="ghost small">复制报告</button></div>
-      <pre id="report">点击“开始完整检测”生成报告。</pre>
-    </section>
-  </main>
+<section class="page" id="page-ping">
+ <div class="panel"><h1>全球 Ping 测试</h1><p class="sub">真正由全球分布式探针向目标发 ICMP Ping，返回最小/平均/最大 RTT 和丢包率。</p>
+ <form class="search" id="pingForm"><input id="pingTarget" placeholder="输入 IP 或域名，例如 1.1.1.1"><button class="btn">全球 Ping</button></form>
+ <div id="pingResult"></div></div>
+</section>
 
-  <footer>鑫淼网络检测 · GitHub Pages + Cloudflare Worker · 不保存检测历史</footer>
-  <script src="./config.js"></script>
-  <script src="./app.js" defer></script>
-</body>
-</html>
+<section class="page" id="page-status">
+ <div class="panel"><h1>全球主流互联网服务状态</h1><p class="sub">聚合各服务官方状态接口；故障优先显示。</p>
+ <button class="btn" onclick="runStatus()">刷新状态</button><div id="statusGrid" class="status-grid"></div></div>
+</section>
+
+<section class="page" id="page-whois">
+ <div class="panel"><h1>WHOIS / RDAP 查询</h1><p class="sub">支持域名、IPv4、IPv6、ASN。优先使用 RDAP 结构化注册数据。</p>
+ <form class="search" id="whoisForm"><input id="whoisInput" placeholder="google.com / 8.8.8.8 / AS15169"><button class="btn">查询</button></form>
+ <div id="whoisResult"></div></div>
+</section>
+</main>
+<footer>鑫淼网络检测 · Worker Full Stack · V1.6</footer>
+<script src="/config.js"></script><script src="/app.js"></script>
+</body></html>
