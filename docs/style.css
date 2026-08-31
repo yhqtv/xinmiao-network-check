@@ -42,3 +42,7 @@ main{width:min(1220px,94vw);margin:28px auto 55px}.page{display:none}.page.activ
 .btn-secondary{background:#102d47;border:1px solid #2a5c7e;color:var(--text)}
 .btn-secondary.privacy-on{border-color:#2b7664;color:var(--good);box-shadow:inset 0 0 0 1px rgba(84,227,162,.08)}
 @media(max-width:560px){.hero-actions{width:100%}.hero-actions .btn{flex:1}}
+
+/* V2.0 probe source */
+.probe-source{display:inline-block;margin-top:6px;font-size:10px;color:var(--accent);text-decoration:none}
+.probe-source:hover{text-decoration:underline}

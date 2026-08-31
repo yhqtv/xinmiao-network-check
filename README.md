@@ -1,4 +1,4 @@
-# 鑫淼网络检测 V1.9 — 全功能检测套件
+# 鑫淼网络检测 V2.0 — 全功能检测套件
 
 ## 当前页面/模块
 
@@ -35,7 +35,7 @@ Cloudflare Worker 只处理 HTTP 请求，无法直接看到浏览器系统 DNS 
 
 ## D1
 
-V1.9 仍然不使用 D1：
+V2.0 仍然不使用 D1：
 - Reads = 0
 - Writes = 0
 
@@ -53,7 +53,7 @@ GPT / Claude 历史仅使用浏览器 localStorage，不占 Cloudflare 数据库
 - `POST /api/globalping`
 
 
-## V1.9 网站分流测试
+## V2.0 网站分流测试
 
 已加入 48 个网站：
 - 中国：12
@@ -64,7 +64,7 @@ GPT / Claude 历史仅使用浏览器 localStorage，不占 Cloudflare 数据库
 每个站点显示：图标、名称、官方网址、浏览器侧可达状态、3 次测试中位 HTTP 耗时。
 
 
-## V1.9 首页三线路出口 IP
+## V2.0 首页三线路出口 IP
 
 首页新增类似 ip111.cn 的快速出口判断：
 - 国内测试
@@ -76,7 +76,7 @@ GPT / Claude 历史仅使用浏览器 localStorage，不占 Cloudflare 数据库
 技术说明：普通网页无法强制 Google 自己返回“Google 服务器看到的客户端公网 IP”。因此第三项明确标注为独立国际回显探针，不伪造 Google 出口结果。若以后部署 Google 路径专用自有回显节点，可以替换成真正的 Google 路由出口探针。
 
 
-## V1.9 首页 IP 隐私开关
+## V2.0 首页 IP 隐私开关
 
 首页新增“一键隐藏 50% IP”：
 - IPv4：例如 `123.45.67.89` 显示为 `123.45.***.***`
@@ -85,3 +85,24 @@ GPT / Claude 历史仅使用浏览器 localStorage，不占 Cloudflare 数据库
 - 再次点击可恢复完整 IP
 - 状态保存在浏览器 localStorage，刷新页面后仍保持
 - 仅改变前端显示，不改变真实检测结果、API 返回值和分流判断
+
+
+## V2.0 修复：真正的国内出口 IP 探针
+
+V1.9 的“国内测试”错误地请求本站 Cloudflare Worker，因此当代理规则把 `ip.yhqtv.com` / Cloudflare 走 PROXY 时，会显示国外代理 IP。
+
+V2.0 已改为浏览器直接请求中国境内 IP 回显：
+
+1. 主探针：`https://uapis.cn/api/v1/network/myip`
+2. 备用探针：`https://whois.pconline.com.cn/ipJson.jsp`（JSONP）
+
+这些请求不经过本站 Worker。代理软件如果把中国大陆域名分配为 DIRECT，探针看到的就是国内直连出口 IP。
+
+国内两个探针同时成功时：
+- IP 一致：页面标记“双探针一致”
+- IP 不一致：页面直接提示两条国内域名本身被分到了不同线路，便于检查 Clash / Surge / Shadowrocket / sing-box 规则
+
+国外测试继续使用国际公网 IP 回显。
+Google 测试仍明确标注为“独立国际对照，非 Google 官方 IP 回显”，不伪造 Google 服务器侧结果。
+
+注意：第三方公开探针可能临时限流、变更 CORS 或不可用，因此正式长期运营最好最终部署 `cn-ip.yhqtv.com` 到真正的中国大陆服务器，完全由自己控制。

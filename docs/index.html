@@ -34,7 +34,7 @@
  <div class="grid4" id="basicCards"></div>
  <div class="panel egress-panel">
   <div class="section-row">
-   <div><h2>三线路出口 IP</h2><p class="sub">分别观察访问国内网站、普通国外网站、Google 系网站时实际使用的出口 IP，用来快速判断代理分流是否生效。</p></div>
+   <div><h2>三线路出口 IP</h2><p class="sub">分别从中国境内 IP 回显、国际 IP 回显和独立国际探针读取浏览器实际出口 IP。国内测试不再经过 Cloudflare Worker，用来更准确判断 DIRECT / PROXY 分流是否生效。</p></div>
    <button class="btn" onclick="runEgress()">重新检测</button>
   </div>
   <div class="egress-grid" id="egressGrid">
@@ -96,6 +96,6 @@
  <div id="whoisResult"></div></div>
 </section>
 </main>
-<footer>鑫淼网络检测 · Worker Full Stack · V1.9</footer>
+<footer>鑫淼网络检测 · Worker Full Stack · V2.0</footer>
 <script src="/config.js"></script><script src="/app.js"></script>
 </body></html>

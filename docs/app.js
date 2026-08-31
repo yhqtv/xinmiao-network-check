@@ -88,53 +88,183 @@ async function probe(name,url,timeout=5000){
  catch(e){return{name,ok:false,ms:null}}finally{clearTimeout(t)}
 }
 
-async function textFetch(url,timeout=6000){
+
+async function textFetch(url,timeout=6500,fetchOptions={}){
  const c=new AbortController(),t=setTimeout(()=>c.abort(),timeout),s=performance.now();
  try{
-  const r=await fetch(url+(url.includes("?")?"&":"?")+"_xm="+Date.now(),{cache:"no-store",signal:c.signal});
+  const sep=url.includes("?")?"&":"?";
+  const r=await fetch(url+sep+"_xm="+Date.now(),{
+    cache:"no-store",
+    signal:c.signal,
+    credentials:"omit",
+    ...fetchOptions
+  });
   const text=await r.text();
-  return {ok:r.ok,text,ms:Math.round(performance.now()-s)};
- }catch(e){return {ok:false,error:e.name==="AbortError"?"超时":e.message,ms:null}}
- finally{clearTimeout(t)}
+  return {ok:r.ok,text,ms:Math.round(performance.now()-s),status:r.status};
+ }catch(e){
+  return {ok:false,error:e.name==="AbortError"?"超时":e.message,ms:null};
+ }finally{clearTimeout(t)}
 }
+
 function extractIp(text){
- try{const j=JSON.parse(text);return j.ip||j.query||j.address||null}catch{}
+ try{
+  const j=JSON.parse(text);
+  return j.ip || j.query || j.address || j.data?.ip || j.result?.ip || null;
+ }catch{}
  const m=String(text||"").match(/(?:\d{1,3}\.){3}\d{1,3}|(?:[0-9a-f]{0,4}:){2,}[0-9a-f:]+/i);
  return m?m[0]:null;
 }
-async function egressProbe(label,url,note){
- const r=await textFetch(url);
- return {label,url,note,ok:r.ok,ip:r.ok?extractIp(r.text):null,ms:r.ms,error:r.error};
+
+// 中国境内主探针：浏览器直接访问，不经过本站 Worker。
+async function cnProbeUapis(){
+ const url="https://uapis.cn/api/v1/network/myip";
+ const r=await textFetch(url,7000);
+ return {
+  kind:"cn",
+  label:"国内测试",
+  source:"UAPI 中国境内回显",
+  url,
+  ok:r.ok,
+  ip:r.ok?extractIp(r.text):null,
+  ms:r.ms,
+  error:r.error||(!r.ok?`HTTP ${r.status||""}`:null)
+ };
 }
+
+// 中国境内备用探针：PCOnline JSONP。
+// JSONP 不受 fetch CORS 限制，而且请求仍然由当前浏览器直接发出，
+// 因此服务器看到的是该域名实际走的 DIRECT/PROXY 出口。
+function cnProbePconline(timeout=7000){
+ return new Promise(resolve=>{
+  const cb="XM_CN_"+Date.now()+"_"+Math.random().toString(36).slice(2);
+  const timer=setTimeout(()=>finish({ok:false,error:"超时"}),timeout);
+  const script=document.createElement("script");
+  const started=performance.now();
+  let done=false;
+
+  function cleanup(){
+    clearTimeout(timer);
+    try{delete window[cb]}catch{window[cb]=undefined}
+    script.remove();
+  }
+  function finish(result){
+    if(done)return; done=true;
+    cleanup();
+    resolve({
+      kind:"cn",
+      label:"国内测试",
+      source:"太平洋网络 IP JSONP",
+      url:"https://whois.pconline.com.cn/ipJson.jsp",
+      ms:Math.round(performance.now()-started),
+      ...result
+    });
+  }
+
+  window[cb]=data=>{
+    const ip=data?.ip || data?.data?.ip || null;
+    finish({ok:!!ip,ip,error:ip?null:"未返回 IP"});
+  };
+  script.onerror=()=>finish({ok:false,error:"加载失败"});
+  script.src=`https://whois.pconline.com.cn/ipJson.jsp?callback=${encodeURIComponent(cb)}&_xm=${Date.now()}`;
+  document.head.appendChild(script);
+ });
+}
+
+async function foreignProbe(){
+ const urls=[
+  ["ipify","https://api.ipify.org?format=json"],
+  ["Cloudflare Trace","https://www.cloudflare.com/cdn-cgi/trace"]
+ ];
+ for(const [source,url] of urls){
+  const r=await textFetch(url,7000);
+  const ip=r.ok?extractIp(r.text):null;
+  if(ip) return {kind:"foreign",label:"国外测试",source,url,ok:true,ip,ms:r.ms};
+ }
+ return {kind:"foreign",label:"国外测试",source:"国际回显",ok:false,error:"国际探针均失败"};
+}
+
+async function googleRouteProbe(){
+ // 浏览器无法从 google.com 本身直接读取“Google 服务器看到的客户端 IP”。
+ // 这里保留一个独立国际回显，作为特殊代理/国际路由的辅助对照。
+ // UI 明确标注，不冒充 Google 官方 IP 回显。
+ const url="https://api64.ipify.org?format=json";
+ const r=await textFetch(url,7000);
+ return {
+  kind:"google",
+  label:"Google测试",
+  source:"独立国际回显（非 Google 官方）",
+  url,
+  ok:r.ok,
+  ip:r.ok?extractIp(r.text):null,
+  ms:r.ms,
+  error:r.error
+ };
+}
+
+function sameIp(a,b){return !!a && !!b && String(a).trim()===String(b).trim()}
 
 function renderEgressResults(rs){
  const root=$("#egressGrid"), verdict=$("#egressVerdict");
  if(!root || !verdict) return;
+
  root.innerHTML=rs.map((r,i)=>`<div class="egress-card">
    <div class="egress-icon">${["中","外","G"][i]}</div>
-   <div class="egress-body"><small>${esc(r.label)}</small>
+   <div class="egress-body">
+    <small>${esc(r.label)}</small>
     <b class="${r.ip?"good":"bad"}">${esc(r.ip?displayIp(r.ip):(r.error||"读取失败"))}</b>
-    <span>${esc(r.note)}${r.ms!=null?" · "+r.ms+" ms":""}</span>
-   </div></div>`).join("");
- const ips=rs.map(x=>x.ip).filter(Boolean), uniq=[...new Set(ips)];
- let msg;
- if(ips.length<2) msg="有效探针不足，暂时无法判断出口是否分流。";
- else if(uniq.length===1) msg="三个探针观察到相同公网 IP：当前更接近全局同一出口。";
- else if(uniq.length===2) msg="检测到 2 个不同出口 IP：当前存在分流/多出口迹象。";
- else msg="检测到 3 个不同出口 IP：当前存在明显的多线路分流。";
- verdict.textContent=msg+" 注意：隐藏功能只改变页面显示，不影响真实检测和分流判断。";
- verdict.className="egress-verdict "+(uniq.length>1?"split":"same");
+    <span>${esc(r.source||"")}${r.ms!=null?" · "+r.ms+" ms":""}</span>
+    ${r.url?`<a class="probe-source" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">探针地址</a>`:""}
+   </div>
+ </div>`).join("");
+
+ const cn=rs.find(x=>x.kind==="cn")?.ip;
+ const foreign=rs.find(x=>x.kind==="foreign")?.ip;
+ const google=rs.find(x=>x.kind==="google")?.ip;
+
+ let msg="", cls="same";
+ if(!cn){
+   msg="国内探针没有成功返回 IP。请检查该国内域名是否被代理规则拦截或浏览器扩展阻止。";
+   cls="";
+ }else if(foreign && !sameIp(cn,foreign)){
+   msg="国内出口与国外出口不同：分流已经生效。国内卡片显示的是中国境内回显服务实际看到的出口 IP。";
+   cls="split";
+ }else if(foreign && sameIp(cn,foreign)){
+   msg="国内与国外探针看到相同 IP：当前可能是全局代理、全局直连，或这两个探针被分到了同一路由。";
+ }else{
+   msg="已取得国内出口 IP；国外探针不足，暂时无法完成分流对比。";
+ }
+ if(google && foreign && !sameIp(google,foreign)){
+   msg += " Google/特殊国际对照又出现了另一出口，存在更细粒度分流。";
+   cls="split";
+ }
+ verdict.textContent=msg+" 隐藏 50% IP 只影响页面显示，不影响上述比较。";
+ verdict.className="egress-verdict "+cls;
 }
 
 async function runEgress(){
  const root=$("#egressGrid"), verdict=$("#egressVerdict");
- root.innerHTML='<div class="muted">正在从三条独立探针读取出口 IP…</div>';
- const probes=[
-  ["国内测试",API+"/api/ip","同源 Cloudflare Worker"],
-  ["国外测试","https://api.ipify.org?format=json","ipify 公网回显"],
-  ["Google测试","https://www.cloudflare.com/cdn-cgi/trace","独立国际回显探针"]
- ];
- const rs=await Promise.all(probes.map(x=>egressProbe(...x)));
+ root.innerHTML='<div class="muted">正在直接请求中国境内 / 国际出口探针…</div>';
+ verdict.textContent="正在判断分流模式…";
+
+ // 两个中国境内探针并行。优先 UAPI；失败时自动采用 PCOnline JSONP。
+ const [cn1,cn2,foreign,google]=await Promise.all([
+   cnProbeUapis(),
+   cnProbePconline(),
+   foreignProbe(),
+   googleRouteProbe()
+ ]);
+
+ let cn;
+ if(cn1.ip && cn2.ip){
+   // 两个国内探针若一致，可信度最高；若不一致，优先首个并把差异写进来源。
+   cn = sameIp(cn1.ip,cn2.ip)
+     ? {...cn1,source:`${cn1.source} + ${cn2.source}（一致）`}
+     : {...cn1,source:`${cn1.source}；备用探针=${cn2.ip}（两者分流不一致）`};
+ }else{
+   cn = cn1.ip ? cn1 : cn2;
+ }
+
+ const rs=[cn,foreign,google];
  HOME_EGRESS_RESULTS=rs;
  renderEgressResults(rs);
  return rs;
