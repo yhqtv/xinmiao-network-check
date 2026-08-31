@@ -1,55 +1,70 @@
-# 鑫淼网络检测 V1.1
+# 鑫淼网络检测 V1.2 — GitHub Pages + Cloudflare Worker 根目录版
 
-架构：**GitHub Pages 托管前端 + Cloudflare Worker 提供 API + GitHub Actions 自动部署 Worker**。
+本版已经把原来 `worker/` 目录里的 Worker 文件全部移动到 GitHub 仓库根目录。
 
-## 目录结构
+## 最终目录
 
 ```text
-.
-├── docs/                    # GitHub Pages 网站
+xinmiao-network-check/
+├── docs/                         # GitHub Pages 前端
 │   ├── index.html
 │   ├── style.css
 │   ├── app.js
-│   └── config.js            # 填 Worker 地址
-├── worker/                  # Cloudflare Worker API
-│   ├── src/index.js
-│   ├── package.json
-│   └── wrangler.toml
-└── .github/workflows/
-    └── deploy-worker.yml     # GitHub Actions 自动部署 Worker
+│   └── config.js                 # 填写 Worker API 地址
+├── src/
+│   └── index.js                  # Cloudflare Worker
+├── package.json
+├── wrangler.toml
+├── .github/
+│   └── workflows/
+│       └── deploy-worker.yml
+└── README.md
 ```
 
-## 部署步骤
+## 1. GitHub
 
-### 1. 上传 GitHub
+把本 ZIP 解压后的**全部内容**上传到 `xinmiao-network-check` 仓库根目录。
 
-创建一个新仓库，例如 `xinmiao-network-check`，把 ZIP 解压后的**全部文件**上传到仓库根目录，提交到 `main` 分支。
+GitHub Pages：
 
-### 2. 部署 Cloudflare Worker
+- Settings → Pages
+- Source：Deploy from a branch
+- Branch：main
+- Folder：/docs
 
-可以先在 Cloudflare Dashboard 创建 Worker，也可以在本地 `worker/` 目录执行：
+## 2. Cloudflare Worker
 
-```bash
-npm install
-npx wrangler login
-npx wrangler deploy
+Cloudflare 连接 GitHub 仓库时直接选择这个仓库即可。
+
+Worker 配置现在就在仓库根目录：
+
+- `wrangler.toml`
+- `package.json`
+- `src/index.js`
+
+因此不需要再填写 `worker` 根目录，也不需要 `cd worker`。
+
+如果 Cloudflare 当前页面的“构建命令”是可选的，可留空并部署。Wrangler 配置中的入口为：
+
+```toml
+main = "src/index.js"
 ```
 
-部署后会得到类似：
+Worker 名称：
+
+```toml
+name = "xinmiao-network-api"
+```
+
+部署成功后测试：
 
 ```text
-https://xinmiao-network-api.<你的 workers.dev 子域>.workers.dev
+https://你的Worker地址/health
 ```
 
-访问：
+应返回 `ok: true`。
 
-```text
-https://你的-worker.workers.dev/health
-```
-
-看到 `{"ok":true,...}` 就表示 API 正常。
-
-### 3. 配置 GitHub Pages 前端
+## 3. 把 Worker 地址写入前端
 
 编辑：
 
@@ -57,65 +72,21 @@ https://你的-worker.workers.dev/health
 docs/config.js
 ```
 
-把：
+把示例 Worker 地址替换成实际的 `workers.dev` 地址，末尾不要加 `/`。
 
-```js
-API_BASE: "https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev"
-```
+## 4. GitHub Actions（可选）
 
-改成你自己的 Worker 地址，末尾不要加 `/`。
+如果需要 GitHub push 后自动部署 Worker，在仓库：
 
-### 4. 开启 GitHub Pages
+Settings → Secrets and variables → Actions
 
-GitHub 仓库 → `Settings` → `Pages`
+添加：
 
-- Source: `Deploy from a branch`
-- Branch: `main`
-- Folder: `/docs`
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
 
-保存后网站地址通常为：
+本版 workflow 已经按**根目录 Worker**重写，不再引用 `worker/**`。
 
-```text
-https://你的GitHub用户名.github.io/xinmiao-network-check/
-```
+## 5. D1
 
-### 5. GitHub Actions 自动部署 Worker
-
-GitHub 仓库 → `Settings` → `Secrets and variables` → `Actions`，添加：
-
-```text
-CLOUDFLARE_API_TOKEN
-CLOUDFLARE_ACCOUNT_ID
-```
-
-之后修改 `worker/**` 并推送到 `main`，GitHub Actions 会自动部署 Worker。
-
-### 6. 收紧 CORS（推荐）
-
-第一次测试可保留：
-
-```toml
-ALLOWED_ORIGINS = "*"
-```
-
-网站正常后，在 `worker/wrangler.toml` 改成：
-
-```toml
-ALLOWED_ORIGINS = "https://YOUR-USERNAME.github.io"
-```
-
-如果以后绑定自定义域名，可以用英文逗号分隔多个 Origin。
-
-## V1.1 改动
-
-- 删除 Cloudflare Pages Functions 依赖。
-- 前端改为 GitHub Pages 可直接托管的 `/docs` 结构。
-- 静态资源全部使用相对路径，支持 GitHub 项目子路径。
-- `/api/ip` 与 `/api/lookup` 改为独立 Cloudflare Worker。
-- Worker 加入 CORS 与 `/health` 健康检查。
-- 增加 GitHub Actions 自动部署 Worker。
-- 保留 WebRTC/STUN、出口探针、延迟检测、IP 深度查询和检测报告。
-
-## 注意
-
-GitHub Pages 本身只能托管静态网页，所以读取真实客户端 Cloudflare `request.cf` 信息以及 IP 查询代理必须由 Worker 完成。这也是本版本将前后端拆开的原因。
+当前版本没有绑定 D1，也没有任何 D1 SQL 读写，因此 D1 Reads/Writes 均为 0。
