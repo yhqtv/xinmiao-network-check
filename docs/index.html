@@ -26,7 +26,10 @@
 <section class="page active" id="page-home">
  <div class="hero">
   <div><span class="eyebrow">MY PUBLIC IP</span><h1 id="heroIp">检测中…</h1><p id="heroGeo">正在读取网络信息</p></div>
-  <button class="btn" onclick="runHome()">重新检测</button>
+  <div class="hero-actions">
+    <button class="btn btn-secondary" id="ipPrivacyBtn" onclick="toggleIpPrivacy()">隐藏 50% IP</button>
+    <button class="btn" onclick="runHome()">重新检测</button>
+  </div>
  </div>
  <div class="grid4" id="basicCards"></div>
  <div class="panel egress-panel">
@@ -93,6 +96,6 @@
  <div id="whoisResult"></div></div>
 </section>
 </main>
-<footer>鑫淼网络检测 · Worker Full Stack · V1.8</footer>
+<footer>鑫淼网络检测 · Worker Full Stack · V1.9</footer>
 <script src="/config.js"></script><script src="/app.js"></script>
 </body></html>

@@ -1,7 +1,63 @@
 
 const API=(window.XM_CONFIG?.API_BASE||location.origin).replace(/\/$/,"");
 const $=s=>document.querySelector(s), esc=s=>String(s??"—").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+
 let BASE=null, QUALITY=null;
+let IP_PRIVACY = localStorage.getItem("xm_ip_privacy") === "1";
+let HOME_EGRESS_RESULTS = [];
+
+function maskIp50(ip){
+  if(!ip) return "—";
+  const s=String(ip);
+
+  // IPv4：隐藏后两段，约 50% 地址信息
+  if(/^\d{1,3}(?:\.\d{1,3}){3}$/.test(s)){
+    const p=s.split(".");
+    return `${p[0]}.${p[1]}.***.***`;
+  }
+
+  // IPv6：隐藏后半部分 hextet；兼容压缩格式
+  if(s.includes(":")){
+    const parts=s.split(":");
+    const visible=Math.max(1,Math.ceil(parts.length/2));
+    return parts.map((x,i)=>i<visible?x:(x===""?"":"****")).join(":");
+  }
+
+  // 其他字符串兜底：隐藏后一半字符
+  const n=Math.ceil(s.length/2);
+  return s.slice(0,n)+"*".repeat(Math.max(1,s.length-n));
+}
+
+function displayIp(ip){
+  return IP_PRIVACY ? maskIp50(ip) : (ip || "—");
+}
+
+function refreshPrivacyButton(){
+  const b=$("#ipPrivacyBtn");
+  if(!b) return;
+  b.textContent = IP_PRIVACY ? "显示完整 IP" : "隐藏 50% IP";
+  b.classList.toggle("privacy-on", IP_PRIVACY);
+  b.setAttribute("aria-pressed", IP_PRIVACY ? "true" : "false");
+}
+
+function refreshHomeIpDisplays(){
+  if(BASE?.ip){
+    const h=$("#heroIp");
+    if(h) h.textContent=displayIp(BASE.ip);
+  }
+
+  if(HOME_EGRESS_RESULTS.length){
+    renderEgressResults(HOME_EGRESS_RESULTS);
+  }
+  refreshPrivacyButton();
+}
+
+function toggleIpPrivacy(){
+  IP_PRIVACY=!IP_PRIVACY;
+  localStorage.setItem("xm_ip_privacy",IP_PRIVACY?"1":"0");
+  refreshHomeIpDisplays();
+}
+
 
 async function api(path,opts={}){const r=await fetch(API+path,{cache:"no-store",...opts});const d=await r.json();if(!r.ok||d.ok===false)throw new Error(d.error||"请求失败");return d}
 function maskIp(ip){if(!ip)return"—";if(ip.includes(".")){let a=ip.split(".");a[3]="***";return a.join(".")}return ip.split(":").slice(0,4).join(":")+"::****"}
@@ -50,6 +106,26 @@ async function egressProbe(label,url,note){
  const r=await textFetch(url);
  return {label,url,note,ok:r.ok,ip:r.ok?extractIp(r.text):null,ms:r.ms,error:r.error};
 }
+
+function renderEgressResults(rs){
+ const root=$("#egressGrid"), verdict=$("#egressVerdict");
+ if(!root || !verdict) return;
+ root.innerHTML=rs.map((r,i)=>`<div class="egress-card">
+   <div class="egress-icon">${["中","外","G"][i]}</div>
+   <div class="egress-body"><small>${esc(r.label)}</small>
+    <b class="${r.ip?"good":"bad"}">${esc(r.ip?displayIp(r.ip):(r.error||"读取失败"))}</b>
+    <span>${esc(r.note)}${r.ms!=null?" · "+r.ms+" ms":""}</span>
+   </div></div>`).join("");
+ const ips=rs.map(x=>x.ip).filter(Boolean), uniq=[...new Set(ips)];
+ let msg;
+ if(ips.length<2) msg="有效探针不足，暂时无法判断出口是否分流。";
+ else if(uniq.length===1) msg="三个探针观察到相同公网 IP：当前更接近全局同一出口。";
+ else if(uniq.length===2) msg="检测到 2 个不同出口 IP：当前存在分流/多出口迹象。";
+ else msg="检测到 3 个不同出口 IP：当前存在明显的多线路分流。";
+ verdict.textContent=msg+" 注意：隐藏功能只改变页面显示，不影响真实检测和分流判断。";
+ verdict.className="egress-verdict "+(uniq.length>1?"split":"same");
+}
+
 async function runEgress(){
  const root=$("#egressGrid"), verdict=$("#egressVerdict");
  root.innerHTML='<div class="muted">正在从三条独立探针读取出口 IP…</div>';
@@ -59,27 +135,16 @@ async function runEgress(){
   ["Google测试","https://www.cloudflare.com/cdn-cgi/trace","独立国际回显探针"]
  ];
  const rs=await Promise.all(probes.map(x=>egressProbe(...x)));
- root.innerHTML=rs.map((r,i)=>`<div class="egress-card">
-   <div class="egress-icon">${["中","外","G"][i]}</div>
-   <div class="egress-body"><small>${esc(r.label)}</small>
-    <b class="${r.ip?"good":"bad"}">${esc(r.ip||r.error||"读取失败")}</b>
-    <span>${esc(r.note)}${r.ms!=null?" · "+r.ms+" ms":""}</span>
-   </div></div>`).join("");
- const ips=rs.map(x=>x.ip).filter(Boolean), uniq=[...new Set(ips)];
- let msg;
- if(ips.length<2) msg="有效探针不足，暂时无法判断出口是否分流。";
- else if(uniq.length===1) msg="三个探针观察到相同公网 IP：当前更接近全局同一出口。";
- else if(uniq.length===2) msg="检测到 2 个不同出口 IP：当前存在分流/多出口迹象。";
- else msg="检测到 3 个不同出口 IP：当前存在明显的多线路分流。";
- verdict.textContent=msg+" 注意：第三项是独立国际 IP 回显，不宣称等同于 Google 服务器实际看到的出口 IP。";
- verdict.className="egress-verdict "+(uniq.length>1?"split":"same");
+ HOME_EGRESS_RESULTS=rs;
+ renderEgressResults(rs);
  return rs;
 }
 
 async function runHome(){
+ refreshPrivacyButton();
  runEgress();
  $("#heroIp").textContent="检测中…"; BASE=await api("/api/ip");
- $("#heroIp").textContent=BASE.ip||"—"; $("#heroGeo").textContent=[BASE.city,BASE.region,BASE.country].filter(Boolean).join(" · ");
+ $("#heroIp").textContent=displayIp(BASE.ip); $("#heroGeo").textContent=[BASE.city,BASE.region,BASE.country].filter(Boolean).join(" · ");
  $("#basicCards").innerHTML=[
  ["IP版本","IPv"+BASE.ip_version],["ASN",BASE.asn||"—"],["运营商",BASE.organization||"—"],["Cloudflare节点",BASE.colo||"—"],
  ["协议",BASE.http_protocol||"—"],["TLS",BASE.tls_version||"—"],["时区",BASE.timezone||"—"],["经纬度",[BASE.latitude,BASE.longitude].filter(x=>x!=null).join(", ")||"—"]
@@ -270,4 +335,5 @@ $("#whoisForm").onsubmit=async e=>{
  }catch(e){$("#whoisResult").innerHTML=`<div class="notice bad">${esc(e.message)}</div>`}
 };
 
+refreshPrivacyButton();
 runHome();
