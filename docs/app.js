@@ -211,9 +211,49 @@ async function lookupEgressGeo(ip){
  }
 }
 
+const GEO_ZH={
+ country:{
+  "China":"中国","United States":"美国","Germany":"德国","Japan":"日本","Singapore":"新加坡",
+  "Hong Kong":"中国香港","Taiwan":"中国台湾","South Korea":"韩国","Korea, Republic of":"韩国",
+  "United Kingdom":"英国","France":"法国","Netherlands":"荷兰","Canada":"加拿大","Australia":"澳大利亚",
+  "Russia":"俄罗斯","Russian Federation":"俄罗斯","India":"印度","Thailand":"泰国","Malaysia":"马来西亚",
+  "Indonesia":"印度尼西亚","Vietnam":"越南","Philippines":"菲律宾","United Arab Emirates":"阿联酋",
+  "Switzerland":"瑞士","Sweden":"瑞典","Finland":"芬兰","Norway":"挪威","Denmark":"丹麦","Italy":"意大利",
+  "Spain":"西班牙","Portugal":"葡萄牙","Poland":"波兰","Austria":"奥地利","Belgium":"比利时",
+  "Ireland":"爱尔兰","Brazil":"巴西","Mexico":"墨西哥","Argentina":"阿根廷","Chile":"智利",
+  "South Africa":"南非","New Zealand":"新西兰","Turkey":"土耳其","Türkiye":"土耳其","Israel":"以色列",
+  "Saudi Arabia":"沙特阿拉伯","Macau":"中国澳门"
+ },
+ region:{
+  "California":"加利福尼亚州","New York":"纽约州","Texas":"得克萨斯州","Virginia":"弗吉尼亚州",
+  "Washington":"华盛顿州","Illinois":"伊利诺伊州","Florida":"佛罗里达州","Oregon":"俄勒冈州",
+  "Hesse":"黑森州","Bavaria":"巴伐利亚州","Berlin":"柏林","Tokyo":"东京都",
+  "Osaka":"大阪府","Singapore":"新加坡","Hong Kong":"香港"
+ },
+ city:{
+  "Frankfurt am Main":"法兰克福","Frankfurt":"法兰克福","Los Angeles":"洛杉矶","San Francisco":"旧金山",
+  "New York City":"纽约","New York":"纽约","Chicago":"芝加哥","Seattle":"西雅图","Dallas":"达拉斯",
+  "Tokyo":"东京","Osaka":"大阪","Singapore":"新加坡","Hong Kong":"香港","London":"伦敦",
+  "Paris":"巴黎","Amsterdam":"阿姆斯特丹","Toronto":"多伦多","Sydney":"悉尼","Seoul":"首尔",
+  "Bangkok":"曼谷","Taipei":"台北","Beijing":"北京","Shanghai":"上海","Guangzhou":"广州",
+  "Shenzhen":"深圳","Changchun":"长春","Chengdu":"成都","Wuhan":"武汉","Hangzhou":"杭州",
+  "Nanjing":"南京","Chongqing":"重庆","Tianjin":"天津","Xi'an":"西安","Xian":"西安"
+ }
+};
+
+function bilingualGeoPart(value,type){
+ if(!value) return null;
+ const en=String(value);
+ const zh=GEO_ZH[type]?.[en];
+ return zh && zh!==en ? `${zh} / ${en}` : en;
+}
+
 function formatGeo(g){
- if(!g || g.ok===false) return "地区未知";
- return [g.country||g.country_code, g.state, g.city].filter(Boolean).join(" · ") || "地区未知";
+ if(!g || g.ok===false) return "地区未知 / Unknown";
+ const country=bilingualGeoPart(g.country||g.country_code,"country");
+ const state=bilingualGeoPart(g.state,"region");
+ const city=bilingualGeoPart(g.city,"city");
+ return [country,state,city].filter(Boolean).join(" · ") || "地区未知 / Unknown";
 }
 
 function sameIp(a,b){return !!a && !!b && String(a).trim()===String(b).trim()}
