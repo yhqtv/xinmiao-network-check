@@ -217,3 +217,27 @@ PWA：
 
 注意：
 iPhone / iPad 的安装动作由 Safari 系统菜单控制，网页不能绕过系统直接静默安装。
+
+
+## V2.5.1 新玻璃盾牌图标
+
+已将新版蓝色玻璃盾牌 IP 图标替换到：
+- PWA 512×512
+- PWA 192×192
+- Apple Touch Icon 180×180
+- favicon 64 / 32 / 16
+- favicon.ico
+
+Service Worker 缓存版本同步升级，重新部署后可更快更新桌面/主屏幕图标。
+
+
+## V2.5.2 完整玻璃图标替换
+
+- 使用重新生成的完整四角玻璃盾牌图标
+- 不再裁切源图，使用等比例 Fit 方式生成全部尺寸
+- 四个圆角和外圈高光完整保留
+- 替换 PWA 512 / 192
+- 替换 Apple Touch Icon 180
+- 替换 favicon 64 / 32 / 16 和 favicon.ico
+- Manifest 图标 URL 增加版本参数，减少旧图标缓存
+- Service Worker 缓存升级至 v2.5.2

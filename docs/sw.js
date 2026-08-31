@@ -1,8 +1,8 @@
 
-const CACHE = "xinmiao-net-v2.5";
+const CACHE = "xinmiao-net-v2.5.2";
 const CORE = [
   "/", "/index.html", "/style.css", "/app.js", "/config.js",
-  "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"
+  "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png", "/favicon.ico", "/icons/favicon-32.png", "/icons/favicon-16.png"
 ];
 
 self.addEventListener("install", event => {
