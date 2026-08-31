@@ -164,7 +164,7 @@ async function handle(req, env){
   const u=new URL(req.url), p=u.pathname;
 
   if(p==="/health"||p==="/api/health")
-    return json({ok:true,service:"XinMiao Network API",version:"2.0.0",frontend:"worker-static-assets"});
+    return json({ok:true,service:"XinMiao Network API",version:"2.1.0",frontend:"worker-static-assets"});
 
   if((p==="/ip"||p==="/api/ip") && req.method==="GET") return json(cfInfo(req));
 
@@ -173,7 +173,36 @@ async function handle(req, env){
     catch(e){return json({ok:false,error:e.message},502)}
   }
 
-  if((p==="/lookup"||p==="/api/lookup") && req.method==="GET"){
+  
+  if((p==="/geo"||p==="/api/geo") && req.method==="GET"){
+    const q=(u.searchParams.get("ip")||u.searchParams.get("q")||"").trim();
+    if(!q) return json({ok:false,error:"missing ip"},400);
+    try{
+      const qs=new URLSearchParams({q});
+      if(env.IPAPI_IS_KEY) qs.set("key",env.IPAPI_IS_KEY);
+      const {data,elapsed_ms}=await fetchJson(`https://api.ipapi.is/?${qs.toString()}`,{},7000);
+      const loc=data.location||{};
+      const asn=data.asn||{};
+      const company=data.company||{};
+      return json({
+        ok:true,
+        ip:data.ip||q,
+        country:loc.country||loc.country_name||null,
+        country_code:loc.country_code||loc.country_code2||data.cc||null,
+        state:loc.state||loc.region||null,
+        city:loc.city||null,
+        timezone:loc.timezone||null,
+        asn:asn.asn||asn.num||data.asn_num||null,
+        organization:asn.org||asn.organization||company.name||data.asn_org||null,
+        provider:"ipapi.is",
+        elapsed_ms
+      });
+    }catch(e){
+      return json({ok:false,error:e.message},502);
+    }
+  }
+
+if((p==="/lookup"||p==="/api/lookup") && req.method==="GET"){
     const q=(u.searchParams.get("ip")||u.searchParams.get("q")||"").trim();
     if(!q) return json({ok:false,error:"missing query"},400);
     try{return json({ok:true,query:q,quality:await quality(q,env)})}

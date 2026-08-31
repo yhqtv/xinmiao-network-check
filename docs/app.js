@@ -201,6 +201,21 @@ async function googleRouteProbe(){
  };
 }
 
+
+async function lookupEgressGeo(ip){
+ if(!ip) return null;
+ try{
+  return await api("/api/geo?ip="+encodeURIComponent(ip));
+ }catch(e){
+  return {ok:false,error:e.message};
+ }
+}
+
+function formatGeo(g){
+ if(!g || g.ok===false) return "地区未知";
+ return [g.country||g.country_code, g.state, g.city].filter(Boolean).join(" · ") || "地区未知";
+}
+
 function sameIp(a,b){return !!a && !!b && String(a).trim()===String(b).trim()}
 
 function renderEgressResults(rs){
@@ -213,6 +228,10 @@ function renderEgressResults(rs){
     <small>${esc(r.label)}</small>
     <b class="${r.ip?"good":"bad"}">${esc(r.ip?displayIp(r.ip):(r.error||"读取失败"))}</b>
     <span>${esc(r.source||"")}${r.ms!=null?" · "+r.ms+" ms":""}</span>
+    <div class="egress-geo">
+      <strong>${esc(formatGeo(r.geo))}</strong>
+      ${r.geo?.asn||r.geo?.organization?`<em>${esc([r.geo?.asn?("AS"+String(r.geo.asn).replace(/^AS/i,"")):"",r.geo?.organization].filter(Boolean).join(" · "))}</em>`:""}
+    </div>
     ${r.url?`<a class="probe-source" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">探针地址</a>`:""}
    </div>
  </div>`).join("");
@@ -264,7 +283,15 @@ async function runEgress(){
    cn = cn1.ip ? cn1 : cn2;
  }
 
- const rs=[cn,foreign,google];
+ let rs=[cn,foreign,google];
+
+ // 对三条出口 IP 并行查询国家 / 地区 / 城市 / ASN / 运营商。
+ rs=await Promise.all(rs.map(async r=>{
+   if(!r?.ip) return r;
+   const geo=await lookupEgressGeo(r.ip);
+   return {...r,geo};
+ }));
+
  HOME_EGRESS_RESULTS=rs;
  renderEgressResults(rs);
  return rs;

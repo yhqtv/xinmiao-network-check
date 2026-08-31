@@ -46,3 +46,8 @@ main{width:min(1220px,94vw);margin:28px auto 55px}.page{display:none}.page.activ
 /* V2.0 probe source */
 .probe-source{display:inline-block;margin-top:6px;font-size:10px;color:var(--accent);text-decoration:none}
 .probe-source:hover{text-decoration:underline}
+
+/* V2.1 egress geo */
+.egress-geo{margin-top:8px;padding-top:8px;border-top:1px solid rgba(143,170,189,.16);min-width:0}
+.egress-geo strong{display:block;font-size:13px;color:var(--text);font-weight:750}
+.egress-geo em{display:block;margin-top:3px;color:var(--muted);font-size:10px;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
