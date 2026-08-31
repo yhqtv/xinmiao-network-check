@@ -139,7 +139,7 @@ export default {
     const url = new URL(req.url);
 
     if(url.pathname === "/health" || url.pathname === "/api/health"){
-      return j({ok:true,service:"XinMiao Network API",version:"1.5.0",frontend:"worker-static-assets"});
+      return j({ok:true,service:"XinMiao Network API",version:"1.6.0",frontend:"worker-static-assets"});
     }
 
     if(url.pathname === "/ip" || url.pathname === "/api/ip"){

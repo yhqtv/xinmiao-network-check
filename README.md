@@ -1,6 +1,6 @@
-# 鑫淼网络检测 V1.5 — Cloudflare Worker 前后端一体版
+# 鑫淼网络检测 V1.6 — 网站图标 / 名称 / 网址增强版
 
-本版改成 **一个 Cloudflare Worker 同时托管完整前端静态页面和后端 API*6666*。
+本版改成 **一个 Cloudflare Worker 同时托管完整前端静态页面和后端 API**。
 
 GitHub 仍然负责源码托管与版本管理；GitHub Pages 不再需要。
 
@@ -90,3 +90,12 @@ GitHub 的作用变成：
 - 静态文件由 Cloudflare Workers Static Assets 托管。
 - `/health` 专门用于后端健康检查。
 - Worker 版本升级为 `1.5.0`。
+
+
+## V1.6
+
+- 各服务检测卡片增加网站 favicon 图标。
+- 同时显示网站名称和域名。
+- 域名可以点击打开对应官方网站。
+- 图标加载失败时自动显示网站名称首字母，不留破图。
+- 手机端同步优化卡片布局。

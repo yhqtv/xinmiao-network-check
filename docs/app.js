@@ -199,20 +199,20 @@ async function measuredFetch(url, opts={}){
 
 // V1.4 split-routing catalog. Browser-side checks preserve the user's actual routing decisions.
 window.XM_PROBE_CATALOG = [
-  {group:"国内", name:"百度", url:"https://www.baidu.com/favicon.ico"},
-  {group:"国内", name:"淘宝", url:"https://www.taobao.com/favicon.ico"},
-  {group:"国际", name:"Cloudflare", url:"https://www.cloudflare.com/favicon.ico"},
-  {group:"国际", name:"Google", url:"https://www.google.com/favicon.ico"},
-  {group:"国际", name:"YouTube", url:"https://www.youtube.com/favicon.ico"},
-  {group:"AI", name:"ChatGPT / OpenAI", url:"https://chatgpt.com/favicon.ico"},
-  {group:"AI", name:"Claude", url:"https://claude.ai/favicon.ico"},
-  {group:"AI", name:"Gemini", url:"https://gemini.google.com/favicon.ico"},
-  {group:"AI", name:"Grok", url:"https://x.ai/favicon.ico"},
-  {group:"开发", name:"GitHub", url:"https://github.com/favicon.ico"},
-  {group:"开发", name:"npm", url:"https://www.npmjs.com/favicon.ico"},
-  {group:"开发", name:"GitLab", url:"https://gitlab.com/favicon.ico"},
-  {group:"金融", name:"Wise", url:"https://wise.com/favicon.ico"},
-  {group:"金融", name:"PayPal", url:"https://www.paypal.com/favicon.ico"}
+  {group:"国内", name:"百度", site:"baidu.com", url:"https://www.baidu.com/favicon.ico"},
+  {group:"国内", name:"淘宝", site:"taobao.com", url:"https://www.taobao.com/favicon.ico"},
+  {group:"国际", name:"Cloudflare", site:"cloudflare.com", url:"https://www.cloudflare.com/favicon.ico"},
+  {group:"国际", name:"Google", site:"google.com", url:"https://www.google.com/favicon.ico"},
+  {group:"国际", name:"YouTube", site:"youtube.com", url:"https://www.youtube.com/favicon.ico"},
+  {group:"AI", name:"ChatGPT", site:"chatgpt.com", url:"https://chatgpt.com/favicon.ico"},
+  {group:"AI", name:"Claude", site:"claude.ai", url:"https://claude.ai/favicon.ico"},
+  {group:"AI", name:"Gemini", site:"gemini.google.com", url:"https://gemini.google.com/favicon.ico"},
+  {group:"AI", name:"Grok", site:"x.ai", url:"https://x.ai/favicon.ico"},
+  {group:"开发", name:"GitHub", site:"github.com", url:"https://github.com/favicon.ico"},
+  {group:"开发", name:"npm", site:"npmjs.com", url:"https://www.npmjs.com/favicon.ico"},
+  {group:"开发", name:"GitLab", site:"gitlab.com", url:"https://gitlab.com/favicon.ico"},
+  {group:"金融", name:"Wise", site:"wise.com", url:"https://wise.com/favicon.ico"},
+  {group:"金融", name:"PayPal", site:"paypal.com", url:"https://www.paypal.com/favicon.ico"}
 ];
 
 
@@ -231,9 +231,32 @@ function renderSplit(items){
   const groups=[...new Set(window.XM_PROBE_CATALOG.map(x=>x.group))];
   root.innerHTML=groups.map(group=>{
     const rows=items.filter(x=>x.group===group);
-    return `<div class="split-group"><div class="split-group-head">${esc(group)}</div><div class="split-items">${
-      rows.map(x=>`<div class="split-item"><span>${esc(x.name)}</span><b class="${x.ok?'status-ok':'status-bad'}">${x.ok?`${x.total_ms} ms 总耗时`:esc(x.error||'失败')}</b></div>`).join("")
-    }</div></div>`;
+    return `<div class="split-group">
+      <div class="split-group-head">${esc(group)}</div>
+      <div class="split-items">${
+        rows.map(x=>{
+          const origin = (()=>{try{return new URL(x.url).origin}catch{return ""}})();
+          const icon = origin ? origin + "/favicon.ico" : "";
+          return `<div class="split-item site-card">
+            <div class="site-identity">
+              <div class="site-icon-wrap">
+                <img class="site-icon" src="${esc(icon)}" alt="" loading="lazy"
+                  onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">
+                <span class="site-icon-fallback" style="display:none">${esc((x.name||'?').slice(0,1).toUpperCase())}</span>
+              </div>
+              <div class="site-copy">
+                <div class="site-name">${esc(x.name)}</div>
+                <a class="site-url" href="https://${esc(x.site||'')}" target="_blank" rel="noopener noreferrer">${esc(x.site||origin.replace(/^https?:\/\//,''))}</a>
+              </div>
+            </div>
+            <div class="site-status">
+              <b class="${x.ok?'status-ok':'status-bad'}">${x.ok?`${x.total_ms} ms`:esc(x.error||'失败')}</b>
+              <small>${x.ok?'请求总耗时':'连接状态'}</small>
+            </div>
+          </div>`;
+        }).join("")
+      }</div>
+    </div>`;
   }).join("");
 }
 function splitModeVerdict(items){
