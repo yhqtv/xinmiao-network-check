@@ -21,7 +21,7 @@ async function loadIp(){
     $('#asn').textContent=d.asn?`AS${d.asn}`:'ASN 未知'; $('#isp').textContent=d.asOrganization||'网络未知'; $('#colo').textContent=d.colo?`CF ${d.colo}`:'CF —'; $('#proto').textContent=d.httpProtocol||location.protocol.replace(':','').toUpperCase();
     const v6=d.ip?.includes(':'); $(v6?'#ipv6':'#ipv4').textContent=shownIp(d.ip); $(v6?'#ipv6s':'#ipv4s').textContent='当前出口';
     $('#httpsStatus').textContent=location.protocol==='https:'?'安全':'非 HTTPS'; $('#dnsHttps').textContent=location.protocol==='https:'?'HTTPS 页面':'非 HTTPS';
-  }catch(e){ $('#ip').textContent='读取失败'; $('#location').textContent=e.message; }
+  }catch(e){ $('#ip').textContent='读取失败'; $('#location').textContent=e.name==='AbortError'?'连接 Worker 超时，请检查 API 地址或网络':'API 请求失败：'+e.message; }
 }
 
 const routeProbes=[
@@ -69,4 +69,4 @@ $('#runBtn').onclick=runAll; document.querySelectorAll('[data-run]').forEach(b=>
 $('#copyReport').onclick=()=>navigator.clipboard.writeText($('#report').textContent);
 $('#lookupForm').onsubmit=async e=>{e.preventDefault();const q=$('#lookupInput').value.trim();if(!q)return;$('#lookupResult').textContent='查询中…';try{const d=await fetchJSON(apiUrl('/api/lookup?ip='+encodeURIComponent(q)));if(d.error)throw new Error(d.error);$('#lookupResult').innerHTML=`<b>${esc(d.ip)}</b><br>国家/地区：${esc([d.city,d.region,d.country].filter(Boolean).join(' · '))}<br>网络：${esc(d.connection?.isp||d.connection?.org||'—')}<br>ASN：${esc(d.connection?.asn||'—')}<br>时区：${esc(d.timezone?.id||'—')}`;}catch(err){$('#lookupResult').textContent='查询失败：'+err.message}};
 
-loadIp().then(()=>runAll());
+runAll();

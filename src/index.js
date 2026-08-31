@@ -77,7 +77,7 @@ export default {
     }
     if (request.method !== 'GET') return json({error:'Method Not Allowed'}, request, env, 405);
     const {pathname} = new URL(request.url);
-    if (pathname === '/' || pathname === '/health') return json({ok:true, service:'XinMiao Network API', version:'1.1.0'}, request, env);
+    if (pathname === '/' || pathname === '/health') return json({ok:true, service:'XinMiao Network API', version:'1.3.0'}, request, env);
     if (pathname === '/api/ip') return handleIp(request, env);
     if (pathname === '/api/lookup') return handleLookup(request, env);
     return json({error:'Not Found'}, request, env, 404);

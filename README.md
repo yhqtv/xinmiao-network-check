@@ -1,4 +1,4 @@
-# 鑫淼网络检测 V1.2 — GitHub Pages + Cloudflare Worker 根目录版
+# 鑫淼网络检测 V1.3 — 已绑定 Worker 修复版
 
 本版已经把原来 `worker/` 目录里的 Worker 文件全部移动到 GitHub 仓库根目录。
 
@@ -90,3 +90,10 @@ Settings → Secrets and variables → Actions
 ## 5. D1
 
 当前版本没有绑定 D1，也没有任何 D1 SQL 读写，因此 D1 Reads/Writes 均为 0。
+
+
+## V1.3 修复
+
+- 已绑定 `https://xinmiao-network-check.yhqtv.workers.dev`
+- 修复前端仍使用 Worker 占位地址导致 `Fetch is aborted`
+- 修复页面启动时重复执行 `loadIp()`
