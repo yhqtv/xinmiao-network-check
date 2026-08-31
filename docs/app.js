@@ -71,6 +71,7 @@ document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>{
  if(b.dataset.page==="gpt") runAI("gpt");
  if(b.dataset.page==="claude") runAI("claude");
  if(b.dataset.page==="dns") runDnsRisk();
+ if(b.dataset.page==="score") runCurrentIpScore();
  if(b.dataset.page==="status") runStatus();
 });
 
@@ -116,7 +117,7 @@ function extractIp(text){
  return m?m[0]:null;
 }
 
-// 中国境内主探针：浏览器直接访问，不经过本站 Worker。
+// 中国境内主探针：浏览器直接访问，不经过本站服务端。
 async function cnProbeUapis(){
  const url="https://uapis.cn/api/v1/network/myip";
  const r=await textFetch(url,7000);
@@ -339,7 +340,7 @@ async function runEgress(){
 }
 
 
-// ---------------- V2.3 DNS 泄露风险检测（纯 Cloudflare / 无 VPS / 无 D1） ----------------
+// ---------------- V2.3 DNS 泄露风险检测（无服务器模式） ----------------
 async function dohProbe(name,url){
   const c=new AbortController();
   const t=setTimeout(()=>c.abort(),5500);
@@ -580,6 +581,59 @@ async function runDnsRisk(){
   }
 
   return {risk,trust:100-risk,base,geo,webrtc,doh:dohResults};
+}
+
+
+async function runCurrentIpScore(){
+  try{
+    if(!BASE?.ip){
+      BASE=await api("/api/ip");
+    }
+    const ip=BASE?.ip;
+    if(!ip) return;
+
+    // Fill common IP input fields if the page has one, but do not require user interaction.
+    const input =
+      document.querySelector('#qualityIp') ||
+      document.querySelector('#scoreIp') ||
+      document.querySelector('#lookupIp') ||
+      document.querySelector('input[data-role="ip-score"]');
+    if(input) input.value=ip;
+
+    // Prefer the existing page scoring function if present.
+    if(typeof runQuality==="function"){
+      return await runQuality(ip);
+    }
+    if(typeof checkQuality==="function"){
+      return await checkQuality(ip);
+    }
+    if(typeof runScore==="function"){
+      return await runScore(ip);
+    }
+    if(typeof scoreIp==="function"){
+      return await scoreIp(ip);
+    }
+
+    // Fallback: query the existing quality API and render a compact current-IP score card.
+    const q=await api("/api/quality?ip="+encodeURIComponent(ip));
+    const host =
+      document.querySelector('#qualityResult') ||
+      document.querySelector('#scoreResult') ||
+      document.querySelector('#lookupResult');
+    if(host){
+      const risk=q?.risk_score ?? q?.risk ?? q?.score ?? null;
+      const trust=q?.trust_score ?? q?.trust ?? (typeof risk==="number"?100-risk:null);
+      host.innerHTML=`<div class="panel">
+        <h3>当前 IP 自动评分</h3>
+        <div class="dns-kv"><span>IP</span><b>${esc(displayIp(ip))}</b></div>
+        <div class="dns-kv"><span>风险评分</span><b>${risk??"—"}</b></div>
+        <div class="dns-kv"><span>可信评分</span><b>${trust??"—"}</b></div>
+      </div>`;
+    }
+    return q;
+  }catch(e){
+    console.error("自动评分失败",e);
+  }
 }
 
 async function runHome(){

@@ -34,7 +34,7 @@
  <div class="grid4" id="basicCards"></div>
  <div class="panel egress-panel">
   <div class="section-row">
-   <div><h2>三线路出口 IP</h2><p class="sub">分别从中国境内 IP 回显、国际 IP 回显和独立国际探针读取浏览器实际出口 IP。国内测试不再经过 Cloudflare Worker，用来更准确判断 DIRECT / PROXY 分流是否生效。</p></div>
+   <div><h2>三线路出口 IP</h2><p class="sub">分别从中国境内 IP 回显、国际 IP 回显和独立国际探针读取浏览器实际出口 IP。国内测试不再经过本站服务端，用来更准确判断 DIRECT / PROXY 分流是否生效。</p></div>
    <button class="btn" onclick="runEgress()">重新检测</button>
   </div>
   <div class="egress-grid" id="egressGrid">
@@ -95,7 +95,7 @@
     <div class="page-head">
       <div>
         <h1>DNS 泄露风险检测</h1>
-        <p class="sub">纯 GitHub + Cloudflare 无服务器版。检测公网出口、WebRTC 额外公网 IP、主流 DoH 服务可达性和网络分流信号；不伪造“真实 DNS Resolver IP”。</p>
+        <p class="sub">纯无服务器架构。检测公网出口、WebRTC 额外公网 IP、主流 DoH 服务可达性和网络分流信号；不伪造“真实 DNS Resolver IP”。</p>
       </div>
       <button class="btn" onclick="runDnsRisk()">重新检测</button>
     </div>
@@ -143,12 +143,12 @@
     </div>
     <div class="dns-disclaimer">
       <b>说明：</b>本页面是“DNS 泄露风险检测”，不是权威 DNS 日志型 Resolver 枚举。
-      仅使用 GitHub + Cloudflare 无法直接获得系统真实递归 DNS Resolver 的来源 IP，因此不会把 Worker 出口、DoH 节点或第三方 IP 冒充成你的真实 DNS Resolver。
+      当前架构无法直接获得系统真实递归 DNS Resolver 的来源 IP，因此不会把 Worker 出口、DoH 节点或第三方 IP 冒充成你的真实 DNS Resolver。
     </div>
   </div>
 </section>
 
 </main>
-<footer>鑫淼网络检测 · Worker Full Stack · V2.3.1</footer>
+<footer>鑫淼网络检测 · V2.4</footer>
 <script src="/config.js"></script><script src="/app.js"></script>
 </body></html>
