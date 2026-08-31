@@ -71,6 +71,7 @@ document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>{
  if(b.dataset.page==="gpt") runAI("gpt");
  if(b.dataset.page==="claude") runAI("claude");
  if(b.dataset.page==="dns") runDnsRisk();
+ if(b.dataset.page==="link") runConnectivity();
  if(b.dataset.page==="score") runCurrentIpScore();
  if(b.dataset.page==="status") runStatus();
 });
