@@ -1,6 +1,6 @@
 # 鑫淼网络检测 V1.5 — Cloudflare Worker 前后端一体版
 
-本版改成 **一个 Cloudflare Worker 同时托管完整前端静态页面和后端 API**。
+本版改成 **一个 Cloudflare Worker 同时托管完整前端静态页面和后端 API*6666*。
 
 GitHub 仍然负责源码托管与版本管理；GitHub Pages 不再需要。
 
