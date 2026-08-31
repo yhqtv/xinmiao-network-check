@@ -1,6 +1,6 @@
 {
-  "name": "xinmiao-network-api",
-  "version": "1.1.0",
+  "name": "xinmiao-network-check",
+  "version": "1.5.0",
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
@@ -8,5 +8,6 @@
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
-  }
+  },
+  "description": "XinMiao Network Check - Cloudflare Worker full-stack static assets + API"
 }

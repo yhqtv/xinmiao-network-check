@@ -38,11 +38,46 @@
       <article class="mini card"><span>HTTPS</span><b id="httpsStatus">—</b><small>浏览器连接安全</small></article>
     </section>
 
-    <section class="two-col">
+    
+<section class="panel" id="qualityPanel">
+  <div class="section-head">
+    <div>
+      <h2>IP 质量 / 风险识别</h2>
+      <p>真实第三方数据：VPN、Proxy、Tor、Hosting、Abuser、移动网络等。</p>
+    </div>
+    <button class="btn ghost" id="qualityRetry">重新检测</button>
+  </div>
+  <div class="quality-grid">
+    <div class="quality-score-card">
+      <div class="label">IP 信任分</div>
+      <div class="quality-score"><span id="trustScore">—</span><small>/100</small></div>
+      <div class="risk-badge" id="riskLevel">等待检测</div>
+      <div class="subtle" id="qualityProvider">数据源：ipapi.is</div>
+    </div>
+    <div class="flags-grid" id="qualityFlags">
+      <div class="flag-card"><span>IP 类型</span><b id="ipType">—</b></div>
+      <div class="flag-card"><span>VPN</span><b id="qVpn">—</b></div>
+      <div class="flag-card"><span>Proxy</span><b id="qProxy">—</b></div>
+      <div class="flag-card"><span>Tor</span><b id="qTor">—</b></div>
+      <div class="flag-card"><span>Hosting</span><b id="qHosting">—</b></div>
+      <div class="flag-card"><span>Abuser</span><b id="qAbuser">—</b></div>
+      <div class="flag-card"><span>移动网络</span><b id="qMobile">—</b></div>
+      <div class="flag-card"><span>出口服务</span><b id="qEgress">—</b></div>
+    </div>
+  </div>
+  <div class="notice" id="qualityNotice">正在获取 IP 质量数据…</div>
+</section>
+
+<section class="two-col">
       <article class="card panel">
         <div class="section-head"><div><h2>出口 / 分流探针</h2><p>不同网络域名的公网出口；适合验证代理规则是否按域名分流。</p></div><button class="ghost small" data-run="route">重新检测</button></div>
         <div class="table-wrap"><table><thead><tr><th>探针</th><th>出口 IP</th><th>网络</th><th>状态</th></tr></thead><tbody id="routeBody"></tbody></table></div>
         <p class="hint">注意：浏览器无法直接读取“访问 Google/OpenAI 时对方看到的 IP”，除非目标站或自建探针返回客户端 IP 并允许 CORS。本页面不会伪造这类结果。</p>
+        <div class="split-divider"></div>
+        <div class="subsection-title">按服务分类的浏览器直连测试</div>
+        <div id="splitProbeGroups" class="split-probe-groups"></div>
+        <div id="splitVerdict" class="verdict neutral">等待检测</div>
+
       </article>
 
       <article class="card panel">
@@ -53,7 +88,7 @@
     </section>
 
     <section class="card panel">
-      <div class="section-head"><div><h2>网络连通性与延迟</h2><p>浏览器直接向目标站点发送轻量请求，多轮取中位数。超时不一定代表站点故障，可能是 CORS、网络策略或拦截。</p></div><button class="ghost small" data-run="latency">重新检测</button></div>
+      <div class="section-head"><div><h2>网络连通性与延迟</h2><p>浏览器直接向目标站点发送轻量请求，多轮取中位数。显示的是浏览器请求总耗时，不冒充 ICMP Ping；跨域站点可能因浏览器限制无法提供完整 TTFB/TCP 数据。</p></div><button class="ghost small" data-run="latency">重新检测</button></div>
       <div id="latencyGrid" class="latency-grid"></div>
     </section>
 

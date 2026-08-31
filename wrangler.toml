@@ -1,8 +1,10 @@
-name = "xinmiao-network-api"
+name = "xinmiao-network-check"
 main = "src/index.js"
 compatibility_date = "2026-08-31"
 
-[vars]
-# 初次部署可用 *。正式上线建议改成你的 GitHub Pages 域名：
-# https://YOUR-USERNAME.github.io
-ALLOWED_ORIGINS = "*"
+[assets]
+directory = "./docs"
+binding = "ASSETS"
+run_worker_first = true
+
+# IPAPI_IS_KEY 请通过 Cloudflare Worker Secret 设置，禁止提交到 GitHub。

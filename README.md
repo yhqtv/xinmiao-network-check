@@ -1,99 +1,92 @@
-# 鑫淼网络检测 V1.3 — 已绑定 Worker 修复版
+# 鑫淼网络检测 V1.5 — Cloudflare Worker 前后端一体版
 
-本版已经把原来 `worker/` 目录里的 Worker 文件全部移动到 GitHub 仓库根目录。
+本版改成 **一个 Cloudflare Worker 同时托管完整前端静态页面和后端 API**。
 
-## 最终目录
+GitHub 仍然负责源码托管与版本管理；GitHub Pages 不再需要。
+
+## 最终架构
 
 ```text
-xinmiao-network-check/
-├── docs/                         # GitHub Pages 前端
-│   ├── index.html
-│   ├── style.css
-│   ├── app.js
-│   └── config.js                 # 填写 Worker API 地址
-├── src/
-│   └── index.js                  # Cloudflare Worker
-├── package.json
-├── wrangler.toml
-├── .github/
-│   └── workflows/
-│       └── deploy-worker.yml
-└── README.md
+GitHub
+  │
+  ├── docs/               前端静态文件
+  ├── src/index.js        Worker API
+  ├── wrangler.toml
+  └── GitHub Actions
+        │
+        ▼
+Cloudflare Worker
+  │
+  ├── /                   完整 IP 检测网页
+  ├── /style.css
+  ├── /app.js
+  ├── /config.js
+  ├── /ip
+  ├── /api/ip
+  ├── /quality
+  ├── /api/quality
+  ├── /lookup
+  ├── /api/lookup
+  └── /health
 ```
 
-## 1. GitHub
+## 正式访问地址
 
-把本 ZIP 解压后的**全部内容**上传到 `xinmiao-network-check` 仓库根目录。
+部署完成后直接访问：
 
-GitHub Pages：
+`https://xinmiao-network-check.yhqtv.workers.dev/`
 
-- Settings → Pages
-- Source：Deploy from a branch
-- Branch：main
-- Folder：/docs
+现在根地址 `/` 不再返回 JSON，而是直接显示完整 IP 检测网站。
 
-## 2. Cloudflare Worker
+健康检查改到：
 
-Cloudflare 连接 GitHub 仓库时直接选择这个仓库即可。
+`https://xinmiao-network-check.yhqtv.workers.dev/health`
 
-Worker 配置现在就在仓库根目录：
+## Cloudflare Static Assets
 
-- `wrangler.toml`
-- `package.json`
-- `src/index.js`
-
-因此不需要再填写 `worker` 根目录，也不需要 `cd worker`。
-
-如果 Cloudflare 当前页面的“构建命令”是可选的，可留空并部署。Wrangler 配置中的入口为：
+`wrangler.toml` 已配置：
 
 ```toml
-main = "src/index.js"
+[assets]
+directory = "./docs"
+binding = "ASSETS"
+run_worker_first = true
 ```
 
-Worker 名称：
+Worker 会先处理 API；其他请求自动从 `docs/` 返回前端文件。
 
-```toml
-name = "xinmiao-network-api"
-```
+## GitHub Pages
 
-部署成功后测试：
+V1.5 不需要 GitHub Pages。
 
-```text
-https://你的Worker地址/health
-```
+你可以保留 GitHub Pages 设置，也可以关闭它；不会影响 Worker 网站。
 
-应返回 `ok: true`。
+GitHub 的作用变成：
 
-## 3. 把 Worker 地址写入前端
+- 托管全部源码
+- 版本管理
+- Push 后触发 Cloudflare / GitHub Actions 部署
 
-编辑：
+## IP 质量 Secret
 
-```text
-docs/config.js
-```
+如果需要真实 VPN / Proxy / Tor / Hosting / Abuser 检测，请在 Cloudflare Worker 的 Variables and Secrets 中添加：
 
-把示例 Worker 地址替换成实际的 `workers.dev` 地址，末尾不要加 `/`。
+`IPAPI_IS_KEY`
 
-## 4. GitHub Actions（可选）
+不要把 API Key 写入 GitHub。
 
-如果需要 GitHub push 后自动部署 Worker，在仓库：
+## D1
 
-Settings → Secrets and variables → Actions
+当前仍然没有使用 D1：
 
-添加：
+- D1 Reads = 0
+- D1 Writes = 0
 
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
+## V1.5 变化
 
-本版 workflow 已经按**根目录 Worker**重写，不再引用 `worker/**`。
-
-## 5. D1
-
-当前版本没有绑定 D1，也没有任何 D1 SQL 读写，因此 D1 Reads/Writes 均为 0。
-
-
-## V1.3 修复
-
-- 已绑定 `https://xinmiao-network-check.yhqtv.workers.dev`
-- 修复前端仍使用 Worker 占位地址导致 `Fetch is aborted`
-- 修复页面启动时重复执行 `loadIp()`
+- Worker 根地址 `/` 直接显示前端。
+- API 和前端同域，不再需要 CORS 跨域连接。
+- `docs/config.js` 自动使用 `window.location.origin`。
+- 静态文件由 Cloudflare Workers Static Assets 托管。
+- `/health` 专门用于后端健康检查。
+- Worker 版本升级为 `1.5.0`。
