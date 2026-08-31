@@ -164,7 +164,7 @@ async function handle(req, env){
   const u=new URL(req.url), p=u.pathname;
 
   if(p==="/health"||p==="/api/health")
-    return json({ok:true,service:"XinMiao Network API",version:"2.2.0",frontend:"worker-static-assets"});
+    return json({ok:true,service:"XinMiao Network API",version:"2.3.0",frontend:"worker-static-assets"});
 
   if((p==="/ip"||p==="/api/ip") && req.method==="GET") return json(cfInfo(req));
 

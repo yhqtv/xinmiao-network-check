@@ -95,7 +95,64 @@
  <form class="search" id="whoisForm"><input id="whoisInput" placeholder="google.com / 8.8.8.8 / AS15169"><button class="btn">查询</button></form>
  <div id="whoisResult"></div></div>
 </section>
+
+<section class="page" id="dns">
+  <div class="page-head">
+    <div>
+      <h1>DNS 泄露风险检测</h1>
+      <p>纯 GitHub + Cloudflare 无服务器版。检测公网出口、WebRTC 额外公网 IP、主流 DoH 服务可达性和网络分流信号；不伪造“真实 DNS Resolver IP”。</p>
+    </div>
+    <button class="btn" onclick="runDnsRisk()">开始检测</button>
+  </div>
+
+  <div class="dns-risk-grid">
+    <div class="panel dns-score-card">
+      <small>DNS / 网络泄露风险</small>
+      <div class="dns-score" id="dnsRiskScore">--</div>
+      <div class="dns-risk-level" id="dnsRiskLevel">等待检测</div>
+      <p class="muted" id="dnsRiskSummary">点击“开始检测”进行检测。</p>
+    </div>
+
+    <div class="panel">
+      <h2>公网出口</h2>
+      <div class="dns-kv"><span>IP</span><b id="dnsPublicIp">--</b></div>
+      <div class="dns-kv"><span>国家地区</span><b id="dnsPublicGeo">--</b></div>
+    </div>
+
+    <div class="panel">
+      <h2>WebRTC</h2>
+      <div class="dns-kv"><span>状态</span><b id="dnsWebrtcStatus">--</b></div>
+      <div class="dns-kv"><span>检测到的公网 IP</span><b id="dnsWebrtcIps">--</b></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="section-row">
+      <div>
+        <h2>DoH 可达性</h2>
+        <p class="sub">检查浏览器是否能够访问主流加密 DNS 服务。可达不代表浏览器当前一定正在使用该服务，仅作为 DNS/网络风险判断信号。</p>
+      </div>
+    </div>
+    <div class="dns-doh-grid" id="dnsDohGrid">
+      <div class="dns-doh-card"><b>Cloudflare DoH</b><span>等待检测</span></div>
+      <div class="dns-doh-card"><b>Google DoH</b><span>等待检测</span></div>
+      <div class="dns-doh-card"><b>Quad9 DoH</b><span>等待检测</span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>检测结论</h2>
+    <div class="dns-findings" id="dnsFindings">
+      <div class="muted">尚未检测。</div>
+    </div>
+    <div class="dns-disclaimer">
+      <b>说明：</b>本页面是“DNS 泄露风险检测”，不是权威 DNS 日志型 Resolver 枚举。
+      仅使用 GitHub + Cloudflare 无法直接获得系统真实递归 DNS Resolver 的来源 IP，因此不会把 Worker 出口、DoH 节点或第三方 IP 冒充成你的真实 DNS Resolver。
+    </div>
+  </div>
+</section>
+
 </main>
-<footer>鑫淼网络检测 · Worker Full Stack · V2.2</footer>
+<footer>鑫淼网络检测 · Worker Full Stack · V2.3</footer>
 <script src="/config.js"></script><script src="/app.js"></script>
 </body></html>

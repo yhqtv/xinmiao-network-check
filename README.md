@@ -1,4 +1,4 @@
-# 鑫淼网络检测 V2.2 — 全功能检测套件
+# 鑫淼网络检测 V2.3 — 全功能检测套件
 
 ## 当前页面/模块
 
@@ -35,7 +35,7 @@ Cloudflare Worker 只处理 HTTP 请求，无法直接看到浏览器系统 DNS 
 
 ## D1
 
-V2.2 仍然不使用 D1：
+V2.3 仍然不使用 D1：
 - Reads = 0
 - Writes = 0
 
@@ -53,7 +53,7 @@ GPT / Claude 历史仅使用浏览器 localStorage，不占 Cloudflare 数据库
 - `POST /api/globalping`
 
 
-## V2.2 网站分流测试
+## V2.3 网站分流测试
 
 已加入 48 个网站：
 - 中国：12
@@ -64,7 +64,7 @@ GPT / Claude 历史仅使用浏览器 localStorage，不占 Cloudflare 数据库
 每个站点显示：图标、名称、官方网址、浏览器侧可达状态、3 次测试中位 HTTP 耗时。
 
 
-## V2.2 首页三线路出口 IP
+## V2.3 首页三线路出口 IP
 
 首页新增类似 ip111.cn 的快速出口判断：
 - 国内测试
@@ -76,7 +76,7 @@ GPT / Claude 历史仅使用浏览器 localStorage，不占 Cloudflare 数据库
 技术说明：普通网页无法强制 Google 自己返回“Google 服务器看到的客户端公网 IP”。因此第三项明确标注为独立国际回显探针，不伪造 Google 出口结果。若以后部署 Google 路径专用自有回显节点，可以替换成真正的 Google 路由出口探针。
 
 
-## V2.2 首页 IP 隐私开关
+## V2.3 首页 IP 隐私开关
 
 首页新增“一键隐藏 50% IP”：
 - IPv4：例如 `123.45.67.89` 显示为 `123.45.***.***`
@@ -87,11 +87,11 @@ GPT / Claude 历史仅使用浏览器 localStorage，不占 Cloudflare 数据库
 - 仅改变前端显示，不改变真实检测结果、API 返回值和分流判断
 
 
-## V2.2 修复：真正的国内出口 IP 探针
+## V2.3 修复：真正的国内出口 IP 探针
 
 V1.9 的“国内测试”错误地请求本站 Cloudflare Worker，因此当代理规则把 `ip.yhqtv.com` / Cloudflare 走 PROXY 时，会显示国外代理 IP。
 
-V2.2 已改为浏览器直接请求中国境内 IP 回显：
+V2.3 已改为浏览器直接请求中国境内 IP 回显：
 
 1. 主探针：`https://uapis.cn/api/v1/network/myip`
 2. 备用探针：`https://whois.pconline.com.cn/ipJson.jsp`（JSONP）
@@ -108,7 +108,7 @@ Google 测试仍明确标注为“独立国际对照，非 Google 官方 IP 回�
 注意：第三方公开探针可能临时限流、变更 CORS 或不可用，因此正式长期运营最好最终部署 `cn-ip.yhqtv.com` 到真正的中国大陆服务器，完全由自己控制。
 
 
-## V2.2 三线路出口国家地区
+## V2.3 三线路出口国家地区
 
 三线路出口 IP 卡片现在同时显示：
 - 国家 / 国家代码
@@ -121,7 +121,7 @@ Google 测试仍明确标注为“独立国际对照，非 Google 官方 IP 回�
 IP 隐私开关仍只隐藏 IP 本身；国家地区仍保留显示，方便截图时判断三条线路分别落在哪个国家。
 
 
-## V2.2 国家地区中英文双显
+## V2.3 国家地区中英文双显
 
 三线路出口 IP 的地理信息改为中英文同时显示，例如：
 
@@ -130,3 +130,29 @@ IP 隐私开关仍只隐藏 IP 本身；国家地区仍保留显示，方便截�
 - `美国 / United States · 加利福尼亚州 / California · 洛杉矶 / Los Angeles`
 
 常见国家、地区和城市内置中文映射；没有中文映射的数据会保留服务端返回的英文原名，避免错误翻译。
+
+
+## V2.3 DNS 泄露风险检测（纯 GitHub + Cloudflare）
+
+本版不需要 VPS、不需要 D1、不需要 MySQL/Redis。
+
+检测内容：
+- HTTPS 公网出口 IP
+- 公网 IP 国家 / 地区
+- WebRTC/STUN 暴露的公网 IP
+- WebRTC 是否出现与 HTTPS 出口不同的额外公网 IP
+- Cloudflare DoH 可达性
+- Google DoH 可达性
+- Quad9 DoH 可达性
+- 首页国内/国外出口分流信号
+- 本地透明风险评分与结论
+
+重要边界：
+- 这是“DNS / 网络泄露风险检测”
+- 不是权威 DNS Resolver 枚举
+- DoH“可达”只代表浏览器能访问该 DoH endpoint，不代表系统当前 DNS 正在使用它
+- 仅使用 Cloudflare DNS + Worker 无法可靠获得用户真实递归 Resolver 的来源 IP
+- 页面不会把 Worker IP、DoH 节点 IP 或第三方回显 IP 冒充成真实 DNS Resolver
+
+D1 Reads = 0
+D1 Writes = 0

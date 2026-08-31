@@ -337,6 +337,250 @@ async function runEgress(){
  return rs;
 }
 
+
+// ---------------- V2.3 DNS 泄露风险检测（纯 Cloudflare / 无 VPS / 无 D1） ----------------
+async function dohProbe(name,url){
+  const c=new AbortController();
+  const t=setTimeout(()=>c.abort(),5500);
+  const started=performance.now();
+  try{
+    // Use a normal DNS JSON query. We only judge endpoint reachability.
+    const r=await fetch(url,{
+      method:"GET",
+      cache:"no-store",
+      credentials:"omit",
+      signal:c.signal,
+      headers:{"accept":"application/dns-json"}
+    });
+    let body=null;
+    try{ body=await r.json(); }catch{}
+    return {
+      name,
+      ok:r.ok,
+      status:r.status,
+      ms:Math.round(performance.now()-started),
+      dnsStatus:body?.Status ?? null
+    };
+  }catch(e){
+    return {
+      name,
+      ok:false,
+      error:e.name==="AbortError"?"超时":e.message,
+      ms:null
+    };
+  }finally{
+    clearTimeout(t);
+  }
+}
+
+function isPublicIpCandidate(ip){
+  if(!ip) return false;
+  const s=String(ip).trim();
+
+  // IPv4 private/link-local/loopback exclusions.
+  if(/^\d{1,3}(?:\.\d{1,3}){3}$/.test(s)){
+    const p=s.split(".").map(Number);
+    if(p.some(n=>n<0||n>255)) return false;
+    if(p[0]===10 || p[0]===127) return false;
+    if(p[0]===169 && p[1]===254) return false;
+    if(p[0]===172 && p[1]>=16 && p[1]<=31) return false;
+    if(p[0]===192 && p[1]===168) return false;
+    if(p[0]===100 && p[1]>=64 && p[1]<=127) return false;
+    return true;
+  }
+
+  // IPv6 rough exclusions for loopback, link-local, ULA.
+  if(s.includes(":")){
+    const low=s.toLowerCase();
+    if(low==="::1") return false;
+    if(low.startsWith("fe8")||low.startsWith("fe9")||low.startsWith("fea")||low.startsWith("feb")) return false;
+    if(low.startsWith("fc")||low.startsWith("fd")) return false;
+    return true;
+  }
+  return false;
+}
+
+async function collectWebrtcPublicIps(timeout=5500){
+  const ips=new Set();
+  let pc=null, timer=null;
+  try{
+    pc=new RTCPeerConnection({
+      iceServers:[
+        {urls:"stun:stun.l.google.com:19302"},
+        {urls:"stun:stun.cloudflare.com:3478"}
+      ]
+    });
+    pc.createDataChannel("dns-risk");
+    pc.onicecandidate=e=>{
+      const c=e.candidate?.candidate||"";
+      const parts=c.split(/\s+/);
+      const candidateIp=parts[4];
+      if(isPublicIpCandidate(candidateIp)) ips.add(candidateIp);
+    };
+    const offer=await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await new Promise(resolve=>{
+      timer=setTimeout(resolve,timeout);
+      pc.onicegatheringstatechange=()=>{
+        if(pc.iceGatheringState==="complete"){
+          clearTimeout(timer);
+          resolve();
+        }
+      };
+    });
+  }catch(e){
+    return {ok:false,ips:[],error:e.message};
+  }finally{
+    if(timer) clearTimeout(timer);
+    try{pc?.close()}catch{}
+  }
+  return {ok:true,ips:[...ips]};
+}
+
+function renderDnsDoh(results){
+  const root=$("#dnsDohGrid");
+  if(!root) return;
+  root.innerHTML=results.map(r=>`
+    <div class="dns-doh-card ${r.ok?"ok":"fail"}">
+      <b>${esc(r.name)}</b>
+      <span>${r.ok?"可达 / Reachable":"不可达 / Unreachable"}</span>
+      <em>${r.ms!=null?`${r.ms} ms`:(r.error||"失败")}</em>
+    </div>
+  `).join("");
+}
+
+async function runDnsRisk(){
+  const scoreEl=$("#dnsRiskScore");
+  const levelEl=$("#dnsRiskLevel");
+  const summaryEl=$("#dnsRiskSummary");
+  const ipEl=$("#dnsPublicIp");
+  const geoEl=$("#dnsPublicGeo");
+  const wrtcStatusEl=$("#dnsWebrtcStatus");
+  const wrtcIpsEl=$("#dnsWebrtcIps");
+  const findingsEl=$("#dnsFindings");
+
+  if(scoreEl) scoreEl.textContent="检测中…";
+  if(levelEl) levelEl.textContent="正在检测";
+  if(summaryEl) summaryEl.textContent="正在收集公网出口、WebRTC 和 DoH 信号…";
+  if(findingsEl) findingsEl.innerHTML='<div class="muted">检测中…</div>';
+
+  let base=null, geo=null;
+  try{
+    base=BASE?.ip ? BASE : await api("/api/ip");
+  }catch{}
+  if(base?.ip){
+    try{geo=await lookupEgressGeo(base.ip)}catch{}
+  }
+
+  if(ipEl) ipEl.textContent=displayIp(base?.ip||"—");
+  if(geoEl) geoEl.textContent=formatGeo(geo);
+
+  const [webrtc,dohCf,dohGoogle,dohQuad9]=await Promise.all([
+    collectWebrtcPublicIps(),
+    dohProbe("Cloudflare DoH","https://cloudflare-dns.com/dns-query?name=example.com&type=A"),
+    dohProbe("Google DoH","https://dns.google/resolve?name=example.com&type=A"),
+    dohProbe("Quad9 DoH","https://dns.quad9.net/dns-query?name=example.com&type=A")
+  ]);
+
+  const dohResults=[dohCf,dohGoogle,dohQuad9];
+  renderDnsDoh(dohResults);
+
+  const wrtcIps=(webrtc?.ips||[]).filter(Boolean);
+  const extraPublic=wrtcIps.filter(ip=>base?.ip && ip!==base.ip);
+
+  if(wrtcStatusEl){
+    if(!webrtc?.ok) wrtcStatusEl.textContent="检测受限";
+    else if(extraPublic.length) wrtcStatusEl.textContent="发现额外公网 IP";
+    else if(wrtcIps.length) wrtcStatusEl.textContent="未发现不同出口";
+    else wrtcStatusEl.textContent="未暴露公网候选";
+  }
+  if(wrtcIpsEl){
+    wrtcIpsEl.textContent=wrtcIps.length
+      ? wrtcIps.map(displayIp).join(" / ")
+      : "未检测到";
+  }
+
+  // Risk score is a transparent local heuristic, not a proprietary DNS leak score.
+  let risk=0;
+  const findings=[];
+
+  if(!base?.ip){
+    risk+=20;
+    findings.push({type:"warn",text:"公网出口 IP 获取失败，检测完整性下降。"});
+  }else{
+    findings.push({type:"good",text:`已获取公网出口：${displayIp(base.ip)} · ${formatGeo(geo)}`});
+  }
+
+  if(extraPublic.length){
+    risk+=40;
+    findings.push({
+      type:"bad",
+      text:`WebRTC 发现 ${extraPublic.length} 个与 HTTPS 公网出口不同的公网 IP，存在浏览器侧 IP 泄露风险。`
+    });
+  }else if(webrtc?.ok){
+    findings.push({type:"good",text:"WebRTC 未发现与主公网出口不同的额外公网 IP。"});
+  }else{
+    risk+=8;
+    findings.push({type:"warn",text:"WebRTC 检测受浏览器策略限制，无法完成完整判断。"});
+  }
+
+  const reachable=dohResults.filter(x=>x.ok).length;
+  if(reachable===0){
+    risk+=8;
+    findings.push({type:"warn",text:"三个主流 DoH 端点均不可达，可能被网络策略、浏览器扩展或代理规则阻断。"});
+  }else{
+    findings.push({type:"good",text:`DoH 可达性：${reachable}/3。可达只表示网络能够访问，不代表系统当前 DNS 一定使用这些服务。`});
+  }
+
+  // If all three are reachable, that by itself is neutral; don't lower score as a fake "safe" signal.
+  if(dohResults.some(x=>!x.ok) && reachable>0){
+    risk+=4;
+    findings.push({type:"info",text:"不同 DoH 服务的可达性存在差异，说明当前网络可能存在域名/线路级分流或拦截。"});
+  }
+
+  // Compare current homepage three-route data when available.
+  const egress=Array.isArray(HOME_EGRESS_RESULTS)?HOME_EGRESS_RESULTS:[];
+  const cn=egress.find(x=>x.kind==="cn")?.ip;
+  const foreign=egress.find(x=>x.kind==="foreign")?.ip;
+  if(cn && foreign && cn!==foreign){
+    findings.push({type:"good",text:"首页国内/国外出口 IP 不同，说明当前存在分流；DNS 风险检测会结合这一网络状态解读。"});
+  }
+
+  risk=Math.max(0,Math.min(100,risk));
+  let level,summary,cls;
+  if(risk>=45){
+    level="高风险 / High";
+    summary="发现明显的浏览器侧 IP 泄露或检测异常信号。";
+    cls="high";
+  }else if(risk>=15){
+    level="中等风险 / Medium";
+    summary="存在部分泄露或网络策略异常信号，建议结合代理软件 DNS 设置进一步检查。";
+    cls="medium";
+  }else{
+    level="低风险 / Low";
+    summary="未发现明显浏览器侧泄露迹象。注意：无权威 DNS 日志时，不能据此证明系统 DNS Resolver 一定没有泄露。";
+    cls="low";
+  }
+
+  if(scoreEl) scoreEl.textContent=String(100-risk);
+  if(levelEl){
+    levelEl.textContent=level;
+    levelEl.className="dns-risk-level "+cls;
+  }
+  if(summaryEl) summaryEl.textContent=summary;
+
+  if(findingsEl){
+    findingsEl.innerHTML=findings.map(f=>`
+      <div class="dns-finding ${f.type}">
+        <span>${f.type==="good"?"✓":f.type==="bad"?"!":"•"}</span>
+        <p>${esc(f.text)}</p>
+      </div>
+    `).join("");
+  }
+
+  return {risk,trust:100-risk,base,geo,webrtc,doh:dohResults};
+}
+
 async function runHome(){
  refreshPrivacyButton();
  runEgress();
